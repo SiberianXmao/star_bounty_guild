@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
+// переписать дто отдельно
 public final class UserDtos {
 
     private UserDtos() {

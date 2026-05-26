@@ -19,6 +19,7 @@ import lombok.Setter;
 @Table(name = "sectors", schema = "bounty")
 public class Sector extends BaseUuidEntity {
 
+    // подумать над связями один ко многим и тд
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "controlling_faction_id")
     private Faction controllingFaction;

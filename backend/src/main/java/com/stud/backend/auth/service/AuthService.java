@@ -33,6 +33,7 @@ public class AuthService {
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -60,13 +61,14 @@ public class AuthService {
         user.setEmailVerified(false);
 
         User savedUser = userRepository.save(user);
-
         userRoleRepository.save(new UserRole(savedUser, clientRole));
 
         Set<RoleName> roles = Set.of(RoleName.CLIENT);
-        String accessToken = jwtService.generateAccessToken(savedUser, roles);
 
-        return toAuthResponse(savedUser, roles, accessToken);
+        String accessToken = jwtService.generateAccessToken(savedUser, roles);
+        String refreshToken = refreshTokenService.createRefreshToken(savedUser);
+
+        return toAuthResponse(savedUser, roles, accessToken, refreshToken);
     }
 
     @Transactional
@@ -76,9 +78,7 @@ public class AuthService {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new DisabledException("User is not active");
-        }
+        validateActiveUser(user);
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid email or password");
@@ -88,9 +88,30 @@ public class AuthService {
         userRepository.save(user);
 
         Set<RoleName> roles = getRoles(user);
-        String accessToken = jwtService.generateAccessToken(user, roles);
 
-        return toAuthResponse(user, roles, accessToken);
+        String accessToken = jwtService.generateAccessToken(user, roles);
+        String refreshToken = refreshTokenService.createRefreshToken(user);
+
+        return toAuthResponse(user, roles, accessToken, refreshToken);
+    }
+
+    @Transactional
+    public AuthResponse refresh(RefreshTokenRequest request) {
+        User user = refreshTokenService.validateAndRotate(request.refreshToken());
+
+        validateActiveUser(user);
+
+        Set<RoleName> roles = getRoles(user);
+
+        String accessToken = jwtService.generateAccessToken(user, roles);
+        String newRefreshToken = refreshTokenService.createRefreshToken(user);
+
+        return toAuthResponse(user, roles, accessToken, newRefreshToken);
+    }
+
+    @Transactional
+    public void logout(LogoutRequest request) {
+        refreshTokenService.revoke(request.refreshToken());
     }
 
     public UserSummary me(String email) {
@@ -98,6 +119,12 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 
         return toUserSummary(user, getRoles(user));
+    }
+
+    private void validateActiveUser(User user) {
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new DisabledException("User is not active");
+        }
     }
 
     private Set<RoleName> getRoles(User user) {
@@ -108,10 +135,16 @@ public class AuthService {
                 .collect(Collectors.toSet());
     }
 
-    private AuthResponse toAuthResponse(User user, Set<RoleName> roles, String accessToken) {
+    private AuthResponse toAuthResponse(
+            User user,
+            Set<RoleName> roles,
+            String accessToken,
+            String refreshToken
+    ) {
         return new AuthResponse(
                 "Bearer",
                 accessToken,
+                refreshToken,
                 jwtService.getAccessTokenExpirationSeconds(),
                 toUserSummary(user, roles)
         );

@@ -26,6 +26,7 @@ public class UserRole {
     @EmbeddedId
     private UserRoleId id;
 
+    // подумать над связями один ко многим и тд
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
     @JoinColumn(name = "user_id", nullable = false)

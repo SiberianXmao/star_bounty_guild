@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
+// переписать дто отдельно
 public final class DictionaryDtos {
 
     private DictionaryDtos() {

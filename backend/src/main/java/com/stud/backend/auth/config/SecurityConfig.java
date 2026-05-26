@@ -35,6 +35,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/register").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/logout").permitAll()
+                        .requestMatchers("/api/v1/auth/refresh").permitAll()
+
+                        .requestMatchers("/api/v1/profiles/client/**").permitAll()
+                        .requestMatchers("/api/v1/profiles/hunter/**").permitAll()
+                        .requestMatchers("/api/v1/profiles/hunters").permitAll()
+                        .requestMatchers("/api/v1/profiles/clients").permitAll()
 
                         // Пока оставим справочники публичными, чтобы не мешать разработке.
                         .requestMatchers(HttpMethod.GET, "/api/v1/dictionary/**").permitAll()
