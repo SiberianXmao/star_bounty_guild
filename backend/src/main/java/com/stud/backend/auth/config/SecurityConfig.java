@@ -46,6 +46,10 @@ public class SecurityConfig {
                         // Пока оставим справочники публичными, чтобы не мешать разработке.
                         .requestMatchers(HttpMethod.GET, "/api/v1/dictionary/**").permitAll()
 
+                        .requestMatchers("/api/v1/orders/my/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/*").permitAll()
+
                         // Остальное требует JWT.
                         .anyRequest().authenticated()
                 )
