@@ -1,0 +1,54 @@
+.badge {
+  display: inline-flex;
+  min-height: 1.7rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(247, 240, 223, 0.14);
+  border-radius: 999px;
+  padding: 0.27rem 0.62rem;
+  font-size: 0.73rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.neutral {
+  background: rgba(247, 240, 223, 0.08);
+  color: #f7f0df;
+}
+
+.muted {
+  background: rgba(184, 170, 147, 0.12);
+  color: #ddcfb8;
+}
+
+.calm {
+  border-color: rgba(124, 214, 164, 0.34);
+  background: rgba(124, 214, 164, 0.13);
+  color: #d7ffe3;
+}
+
+.success {
+  border-color: rgba(124, 214, 164, 0.42);
+  background: rgba(124, 214, 164, 0.18);
+  color: #e9fff0;
+}
+
+.info {
+  border-color: rgba(98, 215, 229, 0.34);
+  background: rgba(98, 215, 229, 0.12);
+  color: #ddfbff;
+}
+
+.warn {
+  border-color: rgba(245, 193, 95, 0.42);
+  background: rgba(245, 193, 95, 0.13);
+  color: #ffe7ad;
+}
+
+.danger {
+  border-color: rgba(232, 111, 97, 0.44);
+  background: rgba(232, 111, 97, 0.13);
+  color: #ffd7d1;
+}

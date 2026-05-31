@@ -1,0 +1,133 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.header,
+.tools {
+  border: 1px solid rgba(247, 240, 223, 0.12);
+  border-radius: 8px;
+  background: rgba(18, 16, 14, 0.78);
+}
+
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 14rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  background:
+    radial-gradient(circle at 78% 25%, rgba(98, 215, 229, 0.18), transparent 22rem),
+    radial-gradient(circle at 12% 80%, rgba(215, 166, 74, 0.16), transparent 18rem),
+    rgba(18, 16, 14, 0.78);
+}
+
+.kicker {
+  display: inline-flex;
+  margin-bottom: 0.7rem;
+  border: 1px solid rgba(98, 215, 229, 0.28);
+  border-radius: 999px;
+  padding: 0.32rem 0.65rem;
+  color: #d9fbff;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 7vw, 5.8rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.headerStats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+
+.headerStats span {
+  display: grid;
+  min-width: 8rem;
+  border: 1px solid rgba(247, 240, 223, 0.13);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: rgba(247, 240, 223, 0.045);
+  color: var(--muted);
+  font-size: 0.77rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.headerStats b {
+  color: var(--text);
+  font-size: 1.55rem;
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1.6fr) minmax(12rem, 1fr) minmax(12rem, 1fr);
+  gap: 0.8rem;
+  padding: 1rem;
+}
+
+.searchField {
+  position: relative;
+}
+
+.searchField svg {
+  position: absolute;
+  top: 50%;
+  left: 0.8rem;
+  color: var(--muted);
+  transform: translateY(-50%);
+}
+
+.searchField input {
+  padding-left: 2.35rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1rem;
+}
+
+.skeleton {
+  min-height: 24rem;
+  border: 1px solid rgba(247, 240, 223, 0.08);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, transparent, rgba(247, 240, 223, 0.07), transparent),
+    rgba(247, 240, 223, 0.035);
+  background-size: 220% 100%;
+  animation: sweep 1.4s infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .headerStats {
+    justify-content: start;
+  }
+
+  .tools {
+    grid-template-columns: 1fr;
+  }
+}
