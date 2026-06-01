@@ -32,7 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -73,9 +75,15 @@ public class ProfileService {
     }
 
     public List<HunterProfileResponse> getHunterProfiles() {
-        return hunterProfileRepository.findAll(Sort.by("callsign"))
+        List<HunterProfile> profiles = hunterProfileRepository.findAll(Sort.by("callsign"));
+        Map<UUID, List<HunterSkillResponse>> skillsByHunterProfileId = getSkillsByHunterProfileId(profiles);
+
+        return profiles
                 .stream()
-                .map(this::toHunterProfileResponse)
+                .map(profile -> toHunterProfileResponse(
+                        profile,
+                        skillsByHunterProfileId.getOrDefault(profile.getId(), List.of())
+                ))
                 .toList();
     }
 
@@ -249,13 +257,17 @@ public class ProfileService {
     }
 
     private HunterProfileResponse toHunterProfileResponse(HunterProfile profile) {
-        Faction faction = profile.getFaction();
-        Planet homePlanet = profile.getHomePlanet();
-
         List<HunterSkillResponse> skills = hunterSkillRepository.findAllByHunterProfileId(profile.getId())
                 .stream()
                 .map(this::toHunterSkillResponse)
                 .toList();
+
+        return toHunterProfileResponse(profile, skills);
+    }
+
+    private HunterProfileResponse toHunterProfileResponse(HunterProfile profile, List<HunterSkillResponse> skills) {
+        Faction faction = profile.getFaction();
+        Planet homePlanet = profile.getHomePlanet();
 
         return new HunterProfileResponse(
                 profile.getId(),
@@ -274,6 +286,23 @@ public class ProfileService {
                 profile.getFailedOrdersCount(),
                 skills
         );
+    }
+
+    private Map<UUID, List<HunterSkillResponse>> getSkillsByHunterProfileId(List<HunterProfile> profiles) {
+        if (profiles.isEmpty()) {
+            return Map.of();
+        }
+
+        List<UUID> hunterProfileIds = profiles.stream()
+                .map(HunterProfile::getId)
+                .toList();
+
+        return hunterSkillRepository.findAllByHunterProfile_IdIn(hunterProfileIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        hunterSkill -> hunterSkill.getId().getHunterProfileId(),
+                        Collectors.mapping(this::toHunterSkillResponse, Collectors.toList())
+                ));
     }
 
     private HunterSkillResponse toHunterSkillResponse(HunterSkill hunterSkill) {

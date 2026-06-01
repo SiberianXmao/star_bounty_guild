@@ -48,6 +48,84 @@ export const dictionaryApi = {
       skills: skills.data,
     };
   },
+
+  async createFaction(payload) {
+    const { data } = await apiClient.post("/dictionary/factions", payload);
+    return data;
+  },
+
+  async createSector(payload) {
+    const { data } = await apiClient.post("/dictionary/sectors", payload);
+    return data;
+  },
+
+  async createPlanet(payload) {
+    const { data } = await apiClient.post("/dictionary/planets", payload);
+    return data;
+  },
+
+  async createCategory(payload) {
+    const { data } = await apiClient.post("/dictionary/order-categories", payload);
+    return data;
+  },
+
+  async createCurrency(payload) {
+    const { data } = await apiClient.post("/dictionary/currencies", payload);
+    return data;
+  },
+
+  async createSkill(payload) {
+    const { data } = await apiClient.post("/dictionary/skills", payload);
+    return data;
+  },
+};
+
+export const adminApi = {
+  async users() {
+    const { data } = await apiClient.get("/users");
+    return data;
+  },
+
+  async roles() {
+    const { data } = await apiClient.get("/roles");
+    return data;
+  },
+
+  async createUser(payload) {
+    const { data } = await apiClient.post("/users", payload);
+    return data;
+  },
+
+  async updateUserStatus(userId, status) {
+    const { data } = await apiClient.patch(`/users/${userId}/status`, { status });
+    return data;
+  },
+
+  async assignRole(userId, roleName) {
+    const { data } = await apiClient.post(`/users/${userId}/roles`, { roleName });
+    return data;
+  },
+
+  async removeRole(userId, roleName) {
+    const { data } = await apiClient.delete(`/users/${userId}/roles/${roleName}`);
+    return data;
+  },
+
+  async deleteUser(userId) {
+    await apiClient.delete(`/users/${userId}`);
+  },
+};
+
+export const moderationApi = {
+  async users() {
+    const { data } = await apiClient.get("/moderation/users");
+    return data;
+  },
+
+  async updateUserStatus(userId, status) {
+    const { data } = await apiClient.patch(`/moderation/users/${userId}/status`, { status });
+    return data;
+  },
 };
 
 export const ordersApi = {

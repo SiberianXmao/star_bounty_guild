@@ -1,5 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
-import { Compass, Crosshair, LayoutDashboard } from "lucide-react";
+import { Compass, Crosshair, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { useAuth } from "../../context/AuthContext.jsx";
 import AuthMenu from "../auth/AuthMenu.jsx";
 import styles from "./Layout.module.css";
 
@@ -10,6 +11,14 @@ const navItems = [
 ];
 
 export default function Layout({ children }) {
+  const { user } = useAuth();
+  const userRoles = user?.roles ?? [];
+  const visibleNavItems = userRoles.includes("ADMIN")
+    ? [...navItems, { to: "/admin", label: "Админ", icon: ShieldCheck }]
+    : userRoles.includes("MODERATOR")
+      ? [...navItems, { to: "/moderation", label: "Модерация", icon: ShieldCheck }]
+      : navItems;
+
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -21,7 +30,7 @@ export default function Layout({ children }) {
           </span>
         </Link>
         <nav className={styles.nav} aria-label="Основная навигация">
-          {navItems.map(({ icon: Icon, label, to }) => (
+          {visibleNavItems.map(({ icon: Icon, label, to }) => (
             <NavLink
               className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ""}`}
               key={to}
