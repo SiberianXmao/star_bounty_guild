@@ -1,18 +1,18 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, ListFilter, RefreshCw, Search } from "lucide-react";
-import EmptyState from "../components/EmptyState.jsx";
-import OrderCard from "../components/OrderCard.jsx";
-import { dictionaryApi, ordersApi } from "../services/bountyApi.js";
-import { getApiErrorMessage } from "../services/apiClient.js";
-import { compactParams } from "../utils/formatters.js";
+import EmptyState from "../../components/ui/EmptyState.jsx";
+import OrderCard from "../../components/orders/OrderCard.jsx";
+import { dictionaryApi, ordersApi } from "../../services/bountyApi.js";
+import { getApiErrorMessage } from "../../services/apiClient.js";
+import { compactParams } from "../../utils/formatters.js";
 import {
   ACCEPTANCE_OPTIONS,
   RISK_OPTIONS,
   URGENCY_OPTIONS,
-} from "../utils/labels.js";
-import { useDebouncedValue } from "../hooks/useDebouncedValue.js";
-import heroImage from "../assets/guild-operations-deck.png";
+} from "../../utils/labels.js";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
+import heroImage from "../../assets/guild-operations-deck.png";
 import styles from "./BoardPage.module.css";
 
 const defaultFilters = {

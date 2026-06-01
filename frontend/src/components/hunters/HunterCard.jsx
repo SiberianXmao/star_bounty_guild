@@ -1,7 +1,7 @@
 import { BadgeCheck, Coins, MapPin, Star } from "lucide-react";
-import { availabilityLabel } from "../utils/labels.js";
-import { formatReward } from "../utils/formatters.js";
-import StatusBadge from "./StatusBadge.jsx";
+import { availabilityLabel } from "../../utils/labels.js";
+import { formatReward } from "../../utils/formatters.js";
+import StatusBadge from "../ui/StatusBadge.jsx";
 import styles from "./HunterCard.module.css";
 
 export default function HunterCard({ hunter }) {

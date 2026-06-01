@@ -7,9 +7,9 @@ import {
   toneForRisk,
   toneForStatus,
   urgencyLabel,
-} from "../utils/labels.js";
-import { formatDate, formatReward, shortId } from "../utils/formatters.js";
-import StatusBadge from "./StatusBadge.jsx";
+} from "../../utils/labels.js";
+import { formatDate, formatReward, shortId } from "../../utils/formatters.js";
+import StatusBadge from "../ui/StatusBadge.jsx";
 import styles from "./OrderCard.module.css";
 
 export default function OrderCard({ order }) {

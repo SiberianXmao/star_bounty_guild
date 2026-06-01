@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Crosshair, Search } from "lucide-react";
-import EmptyState from "../components/EmptyState.jsx";
-import HunterCard from "../components/HunterCard.jsx";
-import { dictionaryApi, profilesApi } from "../services/bountyApi.js";
-import { getApiErrorMessage } from "../services/apiClient.js";
-import { AVAILABILITY_OPTIONS } from "../utils/labels.js";
+import EmptyState from "../../components/ui/EmptyState.jsx";
+import HunterCard from "../../components/hunters/HunterCard.jsx";
+import { dictionaryApi, profilesApi } from "../../services/bountyApi.js";
+import { getApiErrorMessage } from "../../services/apiClient.js";
+import { AVAILABILITY_OPTIONS } from "../../utils/labels.js";
 import styles from "./HuntersPage.module.css";
 
 export default function HuntersPage() {

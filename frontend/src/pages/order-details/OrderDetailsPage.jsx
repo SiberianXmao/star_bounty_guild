@@ -13,12 +13,12 @@ import {
   Star,
   UserRound,
 } from "lucide-react";
-import Modal from "../components/Modal.jsx";
-import StatusBadge from "../components/StatusBadge.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
-import { applicationsApi, ordersApi, profilesApi } from "../services/bountyApi.js";
-import { getApiErrorMessage } from "../services/apiClient.js";
-import { formatDate, formatReward, normalizeOptionalString, shortId } from "../utils/formatters.js";
+import Modal from "../../components/ui/Modal.jsx";
+import StatusBadge from "../../components/ui/StatusBadge.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { applicationsApi, ordersApi, profilesApi } from "../../services/bountyApi.js";
+import { getApiErrorMessage } from "../../services/apiClient.js";
+import { formatDate, formatReward, normalizeOptionalString, shortId } from "../../utils/formatters.js";
 import {
   acceptanceLabel,
   riskLabel,
@@ -26,7 +26,7 @@ import {
   toneForRisk,
   toneForStatus,
   urgencyLabel,
-} from "../utils/labels.js";
+} from "../../utils/labels.js";
 import styles from "./OrderDetailsPage.module.css";
 
 const lifecycle = ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "COMPLETED"];

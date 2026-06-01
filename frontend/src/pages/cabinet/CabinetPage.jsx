@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
   BadgePlus,
   Check,
   ClipboardList,
+  LogIn,
   Play,
   Plus,
   Send,
@@ -12,23 +14,23 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import EmptyState from "../components/EmptyState.jsx";
-import StatusBadge from "../components/StatusBadge.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
+import EmptyState from "../../components/ui/EmptyState.jsx";
+import StatusBadge from "../../components/ui/StatusBadge.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import {
   applicationsApi,
   dictionaryApi,
   ordersApi,
   profilesApi,
-} from "../services/bountyApi.js";
-import { getApiErrorMessage } from "../services/apiClient.js";
+} from "../../services/bountyApi.js";
+import { getApiErrorMessage } from "../../services/apiClient.js";
 import {
   dateTimeLocalToIso,
   formatDate,
   formatReward,
   normalizeOptionalString,
   shortId,
-} from "../utils/formatters.js";
+} from "../../utils/formatters.js";
 import {
   ACCEPTANCE_OPTIONS,
   APPLICATION_STATUS_OPTIONS,
@@ -39,7 +41,7 @@ import {
   applicationStatusLabel,
   statusLabel,
   toneForStatus,
-} from "../utils/labels.js";
+} from "../../utils/labels.js";
 import styles from "./CabinetPage.module.css";
 
 const clientProfileDefaults = {
@@ -238,7 +240,11 @@ export default function CabinetPage() {
     return (
       <section className={styles.authGate}>
         <h1>Кабинет</h1>
-        <p>Войдите через панель в верхней части экрана.</p>
+        <p>Терминал кабинета доступен после авторизации.</p>
+        <Link className="button" to="/auth?mode=login">
+          <LogIn size={18} aria-hidden="true" />
+          Войти
+        </Link>
       </section>
     );
   }

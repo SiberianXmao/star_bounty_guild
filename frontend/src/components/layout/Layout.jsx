@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
 import { Compass, Crosshair, LayoutDashboard } from "lucide-react";
-import AuthPanel from "./AuthPanel.jsx";
+import AuthMenu from "../auth/AuthMenu.jsx";
 import styles from "./Layout.module.css";
 
 const navItems = [
@@ -33,7 +33,7 @@ export default function Layout({ children }) {
           ))}
         </nav>
         <div className={styles.auth}>
-          <AuthPanel />
+          <AuthMenu />
         </div>
       </header>
       <main className={styles.main}>{children}</main>
