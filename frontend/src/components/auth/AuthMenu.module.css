@@ -1,0 +1,38 @@
+.guestActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.userPanel {
+  display: flex;
+  min-width: min(24rem, 100%);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(247, 240, 223, 0.13);
+  border-radius: 8px;
+  padding: 0.65rem;
+  background: rgba(247, 240, 223, 0.055);
+}
+
+.userName {
+  display: block;
+  font-weight: 900;
+}
+
+.roles {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .guestActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+}

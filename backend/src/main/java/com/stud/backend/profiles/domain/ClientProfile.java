@@ -1,0 +1,58 @@
+package com.stud.backend.profiles.domain;
+
+
+import com.stud.backend.common.persistence.BaseUuidEntity;
+import com.stud.backend.dictionary.domain.Faction;
+import com.stud.backend.dictionary.domain.Planet;
+import com.stud.backend.users.domain.User;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@Entity
+@Table(name = "client_profiles", schema = "bounty")
+public class ClientProfile extends BaseUuidEntity {
+
+    // подумать над связями один ко многим и тд
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
+    @Column(name = "name", nullable = false, length = 120)
+    private String name;
+
+    @Column(name = "description", columnDefinition = "text")
+    private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faction_id")
+    private Faction faction;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "planet_id")
+    private Planet planet;
+
+    @Column(name = "reliability_score", nullable = false)
+    private Integer reliabilityScore;
+
+    @Column(name = "average_rating", nullable = false, precision = 3, scale = 2)
+    private BigDecimal averageRating;
+
+    @Column(name = "completed_orders_count", nullable = false)
+    private Integer completedOrdersCount;
+
+    @Column(name = "cancelled_orders_count", nullable = false)
+    private Integer cancelledOrdersCount;
+}

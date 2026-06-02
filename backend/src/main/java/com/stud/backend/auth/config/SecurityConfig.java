@@ -35,9 +35,30 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/register").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/logout").permitAll()
+                        .requestMatchers("/api/v1/auth/refresh").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/profiles/clients",
+                                "/api/v1/profiles/hunters",
+                                "/api/v1/profiles/client/*",
+                                "/api/v1/profiles/hunter/*"
+                        ).permitAll()
 
                         // Пока оставим справочники публичными, чтобы не мешать разработке.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/dictionary/**").hasAnyAuthority("ADMIN", "MODERATOR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/dictionary/**").permitAll()
+
+                        .requestMatchers("/api/v1/orders/my/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/*").permitAll()
 
                         // Остальное требует JWT.
                         .anyRequest().authenticated()

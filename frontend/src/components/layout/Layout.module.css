@@ -1,0 +1,122 @@
+.shell {
+  min-height: 100vh;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) auto minmax(18rem, 1fr);
+  gap: 1rem;
+  align-items: center;
+  border-bottom: 1px solid rgba(247, 240, 223, 0.11);
+  padding: 0.8rem clamp(1rem, 3vw, 2rem);
+  background: rgba(16, 14, 12, 0.84);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.brandMark {
+  display: inline-grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid rgba(215, 166, 74, 0.45);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(215, 166, 74, 0.26), rgba(98, 215, 229, 0.08)),
+    rgba(247, 240, 223, 0.06);
+  color: #ffe4a8;
+  font-weight: 950;
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand strong {
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.brand small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(247, 240, 223, 0.1);
+  border-radius: 8px;
+  padding: 0.25rem;
+  background: rgba(247, 240, 223, 0.035);
+}
+
+.navLink {
+  display: inline-flex;
+  min-height: 2.55rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 7px;
+  padding: 0.55rem 0.85rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.navLink.active {
+  background: rgba(98, 215, 229, 0.1);
+  color: var(--text);
+}
+
+.auth {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.main {
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+@media (max-width: 1120px) {
+  .header {
+    grid-template-columns: 1fr;
+  }
+
+  .nav,
+  .auth {
+    justify-content: stretch;
+  }
+
+  .auth > * {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    position: static;
+  }
+
+  .nav {
+    overflow-x: auto;
+    justify-content: start;
+  }
+
+  .navLink {
+    flex: 0 0 auto;
+  }
+}

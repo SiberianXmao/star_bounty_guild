@@ -24,6 +24,7 @@ import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 @Table(name = "planets", schema = "bounty")
 public class Planet extends BaseUuidEntity {
 
+    // подумать над связями один ко многим и тд
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sector_id", nullable = false)
     private Sector sector;

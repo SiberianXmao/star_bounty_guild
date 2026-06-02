@@ -1,0 +1,82 @@
+.card {
+  display: grid;
+  min-height: 25rem;
+  gap: 1rem;
+  align-content: start;
+  border: 1px solid rgba(247, 240, 223, 0.12);
+  border-radius: 8px;
+  padding: 1rem;
+  background:
+    linear-gradient(160deg, rgba(247, 240, 223, 0.08), rgba(247, 240, 223, 0.02)),
+    rgba(22, 19, 17, 0.82);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.cardTop,
+.badges,
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.id {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.badges {
+  justify-content: flex-end;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.25;
+}
+
+.card h3 a:hover {
+  color: var(--brass-strong);
+}
+
+.description {
+  display: -webkit-box;
+  min-height: 6.9rem;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted-strong);
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.metaGrid {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.metaGrid span {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f5ead5;
+  font-size: 0.92rem;
+}
+
+.metaGrid svg {
+  flex: 0 0 auto;
+  color: var(--cyan);
+}
+
+.footer {
+  border-top: 1px solid rgba(247, 240, 223, 0.1);
+  padding-top: 0.9rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}

@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
+// переписать дто отдельно
 public final class UserDtos {
 
     private UserDtos() {
@@ -22,8 +23,7 @@ public final class UserDtos {
             @Size(max = 120) String displayName,
             String avatarUrl,
 
-            // Временно. В auth-модуле заменим на normal password + BCrypt.
-            @NotBlank String passwordHash
+            @NotBlank @Size(min = 8, max = 72) String password
     ) {
     }
 

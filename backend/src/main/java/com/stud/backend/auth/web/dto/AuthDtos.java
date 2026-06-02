@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.util.Set;
 import java.util.UUID;
 
+// переписать дто отдельно
 public final class AuthDtos {
 
     private AuthDtos() {
@@ -30,9 +31,20 @@ public final class AuthDtos {
     ) {
     }
 
+    public record RefreshTokenRequest(
+            @NotBlank String refreshToken
+    ) {
+    }
+
+    public record LogoutRequest(
+            @NotBlank String refreshToken
+    ) {
+    }
+
     public record AuthResponse(
             String tokenType,
             String accessToken,
+            String refreshToken,
             long expiresInSeconds,
             UserSummary user
     ) {
