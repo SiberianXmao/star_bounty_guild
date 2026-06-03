@@ -2,8 +2,6 @@ package com.stud.backend.profiles.domain;
 
 
 import com.stud.backend.common.persistence.BaseUuidEntity;
-import com.stud.backend.dictionary.domain.Faction;
-import com.stud.backend.dictionary.domain.Planet;
 import com.stud.backend.profiles.domain.enums.AvailabilityStatus;
 import com.stud.backend.users.domain.User;
 import jakarta.persistence.Column;
@@ -12,7 +10,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -22,6 +19,7 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -41,13 +39,11 @@ public class HunterProfile extends BaseUuidEntity {
     @Column(name = "bio", columnDefinition = "text")
     private String bio;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "faction_id")
-    private Faction faction;
+    @Column(name = "faction_id")
+    private UUID factionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "home_planet_id")
-    private Planet homePlanet;
+    @Column(name = "home_planet_id")
+    private UUID homePlanetId;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)

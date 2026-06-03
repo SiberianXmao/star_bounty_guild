@@ -27,19 +27,19 @@ public final class BountyOrderSpecifications {
     public static Specification<BountyOrder> categoryId(UUID categoryId) {
         return categoryId == null
                 ? null
-                : (root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId);
+                : (root, query, cb) -> cb.equal(root.get("categoryId"), categoryId);
     }
 
     public static Specification<BountyOrder> planetId(UUID planetId) {
         return planetId == null
                 ? null
-                : (root, query, cb) -> cb.equal(root.get("planet").get("id"), planetId);
+                : (root, query, cb) -> cb.equal(root.get("planetId"), planetId);
     }
 
     public static Specification<BountyOrder> sectorId(UUID sectorId) {
         return sectorId == null
                 ? null
-                : (root, query, cb) -> cb.equal(root.get("sector").get("id"), sectorId);
+                : (root, query, cb) -> cb.equal(root.get("sectorId"), sectorId);
     }
 
     public static Specification<BountyOrder> riskLevel(RiskLevel riskLevel) {

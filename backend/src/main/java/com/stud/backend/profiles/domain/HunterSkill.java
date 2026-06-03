@@ -1,7 +1,6 @@
 package com.stud.backend.profiles.domain;
 
 
-import com.stud.backend.dictionary.domain.Skill;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -13,6 +12,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -30,18 +31,12 @@ public class HunterSkill {
     @JoinColumn(name = "hunter_profile_id", nullable = false)
     private HunterProfile hunterProfile;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("skillId")
-    @JoinColumn(name = "skill_id", nullable = false)
-    private Skill skill;
-
     @Column(name = "level", nullable = false)
     private Integer level;
 
-    public HunterSkill(HunterProfile hunterProfile, Skill skill, Integer level) {
+    public HunterSkill(HunterProfile hunterProfile, UUID skillId, Integer level) {
         this.hunterProfile = hunterProfile;
-        this.skill = skill;
         this.level = level;
-        this.id = new HunterSkillId(hunterProfile.getId(), skill.getId());
+        this.id = new HunterSkillId(hunterProfile.getId(), skillId);
     }
 }

@@ -3,14 +3,13 @@ package com.stud.backend.orders.service;
 
 import com.stud.backend.common.exception.BadRequestException;
 import com.stud.backend.common.exception.ResourceNotFoundException;
-import com.stud.backend.dictionary.domain.Currency;
-import com.stud.backend.dictionary.domain.OrderCategory;
-import com.stud.backend.dictionary.domain.Planet;
-import com.stud.backend.dictionary.domain.Sector;
-import com.stud.backend.dictionary.repository.CurrencyRepository;
-import com.stud.backend.dictionary.repository.OrderCategoryRepository;
-import com.stud.backend.dictionary.repository.PlanetRepository;
-import com.stud.backend.dictionary.repository.SectorRepository;
+
+import com.stud.backend.dictionary.api.DictionaryLookup;
+import com.stud.backend.dictionary.api.CurrencyRef;
+import com.stud.backend.dictionary.api.OrderCategoryRef;
+import com.stud.backend.dictionary.api.PlanetRef;
+import com.stud.backend.dictionary.api.SectorRef;
+
 import com.stud.backend.orders.domain.BountyOrder;
 import com.stud.backend.orders.domain.enums.AcceptanceMode;
 import com.stud.backend.orders.domain.enums.OrderStatus;
@@ -20,12 +19,15 @@ import com.stud.backend.orders.domain.enums.UrgencyLevel;
 import com.stud.backend.orders.repository.BountyOrderRepository;
 import com.stud.backend.orders.repository.BountyOrderSpecifications;
 import com.stud.backend.orders.web.dto.OrderDtos;
+
 import com.stud.backend.profiles.domain.ClientProfile;
 import com.stud.backend.profiles.domain.HunterProfile;
 import com.stud.backend.profiles.repository.ClientProfileRepository;
 import com.stud.backend.profiles.repository.HunterProfileRepository;
+
 import com.stud.backend.users.domain.User;
 import com.stud.backend.users.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,10 +48,11 @@ public class OrderService {
     private final UserRepository userRepository;
     private final ClientProfileRepository clientProfileRepository;
 
-    private final OrderCategoryRepository orderCategoryRepository;
-    private final CurrencyRepository currencyRepository;
-    private final PlanetRepository planetRepository;
-    private final SectorRepository sectorRepository;
+    // ------------------- замена
+    private final DictionaryLookup dictionaryLookup;
+
+    //----------------
+
     private final HunterProfileRepository hunterProfileRepository;
 
     private final BountyOrderRepository bountyOrderRepository;
@@ -57,17 +60,30 @@ public class OrderService {
     @Transactional
     public OrderResponse createDraft(String email, OrderDtos.OrderCreateRequest request) {
         ClientProfile clientProfile = findCurrentClientProfile(email);
+        OrderCategoryRef category = findCategory(request.categoryId());
+        CurrencyRef currency = findCurrency(request.rewardCurrencyCode());
+        PlanetRef planet = request.planetId() == null ? null : findPlanet(request.planetId());
+        SectorRef sector = request.sectorId() == null ? null : findSector(request.sectorId());
 
         BountyOrder order = new BountyOrder();
         order.setClient(clientProfile);
         order.setAssignedHunter(null);
         order.setTitle(request.title().trim());
         order.setDescription(request.description().trim());
-        order.setCategory(findCategory(request.categoryId()));
+
+        order.setCategoryId(category.id());
+        //order.setCategory(findCategoryEntity(request.categoryId()));
+
         order.setRewardAmount(request.rewardAmount());
-        order.setRewardCurrency(findCurrency(request.rewardCurrencyCode()));
-        order.setPlanet(request.planetId() == null ? null : findPlanet(request.planetId()));
-        order.setSector(request.sectorId() == null ? null : findSector(request.sectorId()));
+
+
+        order.setRewardCurrencyCode(currency.code());
+        order.setPlanetId(planet == null ? null : planet.id());
+        order.setSectorId(sector == null ? null : sector.id());
+        //order.setRewardCurrency(findCurrencyEntity(request.rewardCurrencyCode()));
+        //order.setPlanet(request.planetId() == null ? null : findPlanetEntity(request.planetId()));
+        //order.setSector(request.sectorId() == null ? null : findSectorEntity(request.sectorId()));
+
         order.setRiskLevel(request.riskLevel());
         order.setUrgencyLevel(request.urgencyLevel());
         order.setStatus(OrderStatus.DRAFT);
@@ -96,7 +112,7 @@ public class OrderService {
         }
 
         if (request.categoryId() != null) {
-            order.setCategory(findCategory(request.categoryId()));
+            order.setCategoryId(findCategory(request.categoryId()).id());
         }
 
         if (request.rewardAmount() != null) {
@@ -104,15 +120,15 @@ public class OrderService {
         }
 
         if (request.rewardCurrencyCode() != null) {
-            order.setRewardCurrency(findCurrency(request.rewardCurrencyCode()));
+            order.setRewardCurrencyCode(findCurrency(request.rewardCurrencyCode()).code());
         }
 
         if (request.planetId() != null) {
-            order.setPlanet(findPlanet(request.planetId()));
+            order.setPlanetId(findPlanet(request.planetId()).id());
         }
 
         if (request.sectorId() != null) {
-            order.setSector(findSector(request.sectorId()));
+            order.setSectorId(findSector(request.sectorId()).id());
         }
 
         if (request.riskLevel() != null) {
@@ -342,27 +358,37 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
     }
 
-    private OrderCategory findCategory(UUID categoryId) {
-        return orderCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order category not found: " + categoryId));
+    // ------ entity пока оставлем чтобы все не сломать
+    private OrderCategoryRef findCategory(UUID categoryId) {
+        OrderCategoryRef category = dictionaryLookup.getOrderCategory(categoryId);
+
+        if (!Boolean.TRUE.equals(category.active())){
+            throw new BadRequestException("Category is not active " + categoryId);
+        }
+        return category;
     }
 
-    private Currency findCurrency(String code) {
-        String normalizedCode = code.trim().toUpperCase();
+    private CurrencyRef findCurrency(String code) {
 
-        return currencyRepository.findById(normalizedCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + normalizedCode));
+        CurrencyRef currency = dictionaryLookup.getCurrency(code);
+
+        if (!Boolean.TRUE.equals(currency.active())){
+            throw new BadRequestException("Currency is not active " + code);
+        }
+        return currency;
     }
 
-    private Planet findPlanet(UUID planetId) {
-        return planetRepository.findById(planetId)
-                .orElseThrow(() -> new ResourceNotFoundException("Planet not found: " + planetId));
+    private PlanetRef findPlanet(UUID planetId) {
+        return dictionaryLookup.getPlanet(planetId);
+
     }
 
-    private Sector findSector(UUID sectorId) {
-        return sectorRepository.findById(sectorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Sector not found: " + sectorId));
+    private SectorRef findSector(UUID sectorId) {
+        return dictionaryLookup.getSector(sectorId);
+
     }
+
+    //------
 
     private void ensureOwner(BountyOrder order, ClientProfile clientProfile) {
         if (!order.getClient().getId().equals(clientProfile.getId())) {
@@ -380,10 +406,14 @@ public class OrderService {
         ClientProfile client = order.getClient();
         HunterProfile hunter = order.getAssignedHunter();
 
-        OrderCategory category = order.getCategory();
-        Currency currency = order.getRewardCurrency();
-        Planet planet = order.getPlanet();
-        Sector sector = order.getSector();
+        OrderCategoryRef category = findCategory(order.getCategoryId());
+        CurrencyRef currency = findCurrency(order.getRewardCurrencyCode());
+        PlanetRef planet = order.getPlanetId() == null ? null : findPlanet(order.getPlanetId());
+        SectorRef sector = order.getSectorId() == null ? null : findSector(order.getSectorId());
+        //OrderCategory category = order.getCategory();
+        //Currency currency = order.getRewardCurrency();
+        //Planet planet = order.getPlanet();
+        //Sector sector = order.getSector();
 
         return new OrderResponse(
                 order.getId(),
@@ -399,19 +429,19 @@ public class OrderService {
                 order.getTitle(),
                 order.getDescription(),
 
-                category.getId(),
-                category.getName(),
+                category.id(),
+                category.name(),
 
                 order.getRewardAmount(),
-                currency.getCode(),
-                currency.getName(),
-                currency.getSymbol(),
+                currency.code(),
+                currency.name(),
+                currency.symbol(),
 
-                planet == null ? null : planet.getId(),
-                planet == null ? null : planet.getName(),
+                planet == null ? null : planet.id(),
+                planet == null ? null : planet.name(),
 
-                sector == null ? null : sector.getId(),
-                sector == null ? null : sector.getName(),
+                sector == null ? null : sector.id(),
+                sector == null ? null : sector.name(),
 
                 order.getRiskLevel(),
                 order.getUrgencyLevel(),

@@ -3,12 +3,12 @@ package com.stud.backend.profiles.service;
 
 import com.stud.backend.common.exception.DuplicateResourceException;
 import com.stud.backend.common.exception.ResourceNotFoundException;
-import com.stud.backend.dictionary.domain.Faction;
-import com.stud.backend.dictionary.domain.Planet;
-import com.stud.backend.dictionary.domain.Skill;
-import com.stud.backend.dictionary.repository.FactionRepository;
-import com.stud.backend.dictionary.repository.PlanetRepository;
-import com.stud.backend.dictionary.repository.SkillRepository;
+
+import com.stud.backend.dictionary.api.DictionaryLookup;
+import com.stud.backend.dictionary.api.FactionRef;
+import com.stud.backend.dictionary.api.PlanetRef;
+import com.stud.backend.dictionary.api.SkillRef;
+
 import com.stud.backend.profiles.domain.ClientProfile;
 import com.stud.backend.profiles.domain.HunterProfile;
 import com.stud.backend.profiles.domain.HunterSkill;
@@ -17,6 +17,7 @@ import com.stud.backend.profiles.domain.enums.AvailabilityStatus;
 import com.stud.backend.profiles.repository.ClientProfileRepository;
 import com.stud.backend.profiles.repository.HunterProfileRepository;
 import com.stud.backend.profiles.repository.HunterSkillRepository;
+
 import com.stud.backend.users.domain.Role;
 import com.stud.backend.users.domain.User;
 import com.stud.backend.users.domain.UserRole;
@@ -24,6 +25,7 @@ import com.stud.backend.users.domain.enums.RoleName;
 import com.stud.backend.users.repository.RoleRepository;
 import com.stud.backend.users.repository.UserRepository;
 import com.stud.backend.users.repository.UserRoleRepository;
+
 import com.stud.backend.profiles.web.dto.ProfileDtos.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -45,9 +47,7 @@ public class ProfileService {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
 
-    private final FactionRepository factionRepository;
-    private final PlanetRepository planetRepository;
-    private final SkillRepository skillRepository;
+    private final DictionaryLookup dictionaryLookup;
 
     private final ClientProfileRepository clientProfileRepository;
     private final HunterProfileRepository hunterProfileRepository;
@@ -113,11 +113,11 @@ public class ProfileService {
         profile.setCancelledOrdersCount(0);
 
         if (request.factionId() != null) {
-            profile.setFaction(findFaction(request.factionId()));
+            profile.setFactionId(findFaction(request.factionId()).id());
         }
 
         if (request.planetId() != null) {
-            profile.setPlanet(findPlanet(request.planetId()));
+            profile.setPlanetId(findPlanet(request.planetId()).id());
         }
 
         ClientProfile savedProfile = clientProfileRepository.save(profile);
@@ -155,11 +155,11 @@ public class ProfileService {
         profile.setFailedOrdersCount(0);
 
         if (request.factionId() != null) {
-            profile.setFaction(findFaction(request.factionId()));
+            profile.setFactionId(findFaction(request.factionId()).id());
         }
 
         if (request.homePlanetId() != null) {
-            profile.setHomePlanet(findPlanet(request.homePlanetId()));
+            profile.setHomePlanetId(findPlanet(request.homePlanetId()).id());
         }
 
         HunterProfile savedProfile = hunterProfileRepository.save(profile);
@@ -175,13 +175,12 @@ public class ProfileService {
         HunterProfile hunterProfile = hunterProfileRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hunter profile not found for current user"));
 
-        Skill skill = skillRepository.findById(request.skillId())
-                .orElseThrow(() -> new ResourceNotFoundException("Skill not found: " + request.skillId()));
+        SkillRef skill = findSkill(request.skillId());
 
-        HunterSkillId id = new HunterSkillId(hunterProfile.getId(), skill.getId());
+        HunterSkillId id = new HunterSkillId(hunterProfile.getId(), skill.id());
 
         HunterSkill hunterSkill = hunterSkillRepository.findById(id)
-                .orElseGet(() -> new HunterSkill(hunterProfile, skill, request.level()));
+                .orElseGet(() -> new HunterSkill(hunterProfile, skill.id(), request.level()));
 
         hunterSkill.setLevel(request.level());
         hunterSkillRepository.save(hunterSkill);
@@ -226,29 +225,31 @@ public class ProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("Hunter profile not found: " + profileId));
     }
 
-    private Faction findFaction(UUID factionId) {
-        return factionRepository.findById(factionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Faction not found: " + factionId));
+    private FactionRef findFaction(UUID factionId) {
+        return dictionaryLookup.getFaction(factionId);
     }
 
-    private Planet findPlanet(UUID planetId) {
-        return planetRepository.findById(planetId)
-                .orElseThrow(() -> new ResourceNotFoundException("Planet not found: " + planetId));
+    private PlanetRef findPlanet(UUID planetId) {
+        return dictionaryLookup.getPlanet(planetId);
+    }
+
+    private SkillRef findSkill(UUID skillId) {
+        return dictionaryLookup.getSkill(skillId);
     }
 
     private ClientProfileResponse toClientProfileResponse(ClientProfile profile) {
-        Faction faction = profile.getFaction();
-        Planet planet = profile.getPlanet();
+        FactionRef faction = profile.getFactionId() == null ? null : findFaction(profile.getFactionId());
+        PlanetRef planet = profile.getPlanetId() == null ? null : findPlanet(profile.getPlanetId());
 
         return new ClientProfileResponse(
                 profile.getId(),
                 profile.getUser().getId(),
                 profile.getName(),
                 profile.getDescription(),
-                faction == null ? null : faction.getId(),
-                faction == null ? null : faction.getName(),
-                planet == null ? null : planet.getId(),
-                planet == null ? null : planet.getName(),
+                faction == null ? null : faction.id(),
+                faction == null ? null : faction.name(),
+                planet == null ? null : planet.id(),
+                planet == null ? null : planet.name(),
                 profile.getReliabilityScore(),
                 profile.getAverageRating(),
                 profile.getCompletedOrdersCount(),
@@ -266,18 +267,18 @@ public class ProfileService {
     }
 
     private HunterProfileResponse toHunterProfileResponse(HunterProfile profile, List<HunterSkillResponse> skills) {
-        Faction faction = profile.getFaction();
-        Planet homePlanet = profile.getHomePlanet();
+        FactionRef faction = profile.getFactionId() == null ? null : findFaction(profile.getFactionId());
+        PlanetRef homePlanet = profile.getHomePlanetId() == null ? null : findPlanet(profile.getHomePlanetId());
 
         return new HunterProfileResponse(
                 profile.getId(),
                 profile.getUser().getId(),
                 profile.getCallsign(),
                 profile.getBio(),
-                faction == null ? null : faction.getId(),
-                faction == null ? null : faction.getName(),
-                homePlanet == null ? null : homePlanet.getId(),
-                homePlanet == null ? null : homePlanet.getName(),
+                faction == null ? null : faction.id(),
+                faction == null ? null : faction.name(),
+                homePlanet == null ? null : homePlanet.id(),
+                homePlanet == null ? null : homePlanet.name(),
                 profile.getAvailabilityStatus(),
                 profile.getMinReward(),
                 profile.getReliabilityScore(),
@@ -306,9 +307,11 @@ public class ProfileService {
     }
 
     private HunterSkillResponse toHunterSkillResponse(HunterSkill hunterSkill) {
+        SkillRef skill = findSkill(hunterSkill.getId().getSkillId());
+
         return new HunterSkillResponse(
-                hunterSkill.getSkill().getId(),
-                hunterSkill.getSkill().getName(),
+                skill.id(),
+                skill.name(),
                 hunterSkill.getLevel()
         );
     }

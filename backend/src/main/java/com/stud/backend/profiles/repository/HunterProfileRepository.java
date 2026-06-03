@@ -13,14 +13,14 @@ import java.util.UUID;
 public interface HunterProfileRepository extends JpaRepository<HunterProfile, UUID> {
 
     @Override
-    @EntityGraph(attributePaths = {"user", "faction", "homePlanet"})
+    @EntityGraph(attributePaths = "user")
     List<HunterProfile> findAll(Sort sort);
 
     @Override
-    @EntityGraph(attributePaths = {"user", "faction", "homePlanet"})
+    @EntityGraph(attributePaths = "user")
     Optional<HunterProfile> findById(UUID id);
 
-    @EntityGraph(attributePaths = {"user", "faction", "homePlanet"})
+    @EntityGraph(attributePaths = "user")
     Optional<HunterProfile> findByUserId(UUID userId);
 
     boolean existsByUserId(UUID userId);

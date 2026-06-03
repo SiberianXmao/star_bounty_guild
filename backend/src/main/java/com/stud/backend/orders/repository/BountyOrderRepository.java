@@ -16,42 +16,26 @@ public interface BountyOrderRepository extends JpaRepository<BountyOrder, UUID>,
     @Override
     @EntityGraph(attributePaths = {
             "client",
-            "assignedHunter",
-            "category",
-            "rewardCurrency",
-            "planet",
-            "sector"
+            "assignedHunter"
     })
     Optional<BountyOrder> findById(UUID id);
 
     @Override
     @EntityGraph(attributePaths = {
             "client",
-            "assignedHunter",
-            "category",
-            "rewardCurrency",
-            "planet",
-            "sector"
+            "assignedHunter"
     })
     Page<BountyOrder> findAll(Specification<BountyOrder> spec, Pageable pageable);
 
     @EntityGraph(attributePaths = {
             "client",
             "assignedHunter",
-            "category",
-            "rewardCurrency",
-            "planet",
-            "sector"
     })
     Page<BountyOrder> findAllByClientId(UUID clientId, Pageable pageable);
 
     @EntityGraph(attributePaths = {
             "client",
             "assignedHunter",
-            "category",
-            "rewardCurrency",
-            "planet",
-            "sector"
     })
     Page<BountyOrder> findAllByAssignedHunterId(UUID hunterId, Pageable pageable);
 }

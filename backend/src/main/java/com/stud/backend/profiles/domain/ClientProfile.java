@@ -2,14 +2,11 @@ package com.stud.backend.profiles.domain;
 
 
 import com.stud.backend.common.persistence.BaseUuidEntity;
-import com.stud.backend.dictionary.domain.Faction;
-import com.stud.backend.dictionary.domain.Planet;
 import com.stud.backend.users.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -17,6 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -36,13 +34,13 @@ public class ClientProfile extends BaseUuidEntity {
     @Column(name = "description", columnDefinition = "text")
     private String description;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "faction_id")
-    private Faction faction;
+    //---
+    @Column(name = "faction_id")
+    private UUID factionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "planet_id")
-    private Planet planet;
+    //---
+    @Column(name = "planet_id")
+    private UUID planetId;
 
     @Column(name = "reliability_score", nullable = false)
     private Integer reliabilityScore;
