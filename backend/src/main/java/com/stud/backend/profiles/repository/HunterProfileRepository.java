@@ -6,6 +6,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +23,9 @@ public interface HunterProfileRepository extends JpaRepository<HunterProfile, UU
 
     @EntityGraph(attributePaths = "user")
     Optional<HunterProfile> findByUserId(UUID userId);
+
+    @EntityGraph(attributePaths = "user")
+    List<HunterProfile> findByIdIn(Collection<UUID> ids);
 
     boolean existsByUserId(UUID userId);
 

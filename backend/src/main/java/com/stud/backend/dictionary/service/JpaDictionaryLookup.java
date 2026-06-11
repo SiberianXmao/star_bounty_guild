@@ -24,7 +24,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +48,140 @@ public class JpaDictionaryLookup implements DictionaryLookup {
         Faction faction = factionRepository.findById(factionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Faction not found: " + factionId));
 
+        return toFactionRef(faction);
+    }
+
+    @Override
+    public SectorRef getSector(UUID sectorId) {
+        Sector sector = sectorRepository.findById(sectorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sector not found: " + sectorId));
+
+        return toSectorRef(sector);
+    }
+
+    @Override
+    public PlanetRef getPlanet(UUID planetId) {
+        Planet planet = planetRepository.findById(planetId)
+                .orElseThrow(() -> new ResourceNotFoundException("Planet not found: " + planetId));
+
+        return toPlanetRef(planet);
+    }
+
+    @Override
+    public CurrencyRef getCurrency(String currencyCode) {
+        String code = currencyCode.trim().toUpperCase();
+        Currency currency = currencyRepository.findById(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + code));
+
+        return toCurrencyRef(currency);
+    }
+
+    @Override
+    public OrderCategoryRef getOrderCategory(UUID categoryId) {
+        OrderCategory category = orderCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order category not found: " + categoryId));
+
+        return toOrderCategoryRef(category);
+    }
+
+    @Override
+    public SkillRef getSkill(UUID skillId) {
+        Skill skill = skillRepository.findById(skillId)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill not found: " + skillId));
+
+        return toSkillRef(skill);
+    }
+
+    @Override
+    public Map<UUID, FactionRef> getFactionsByIds(Collection<UUID> factionIds) {
+        if (factionIds == null || factionIds.isEmpty()) {
+            return Map.of();
+        }
+        return factionRepository.findAllById(factionIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        Faction::getId,
+                        this::toFactionRef
+                ));
+    }
+
+    @Override
+    public Map<UUID, SkillRef> getSkillsById(Collection<UUID> skillIds) {
+        if (skillIds == null || skillIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return skillRepository.findAllById(skillIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        Skill::getId,
+                        this::toSkillRef
+                ));
+    }
+
+    @Override
+    public Map<UUID, OrderCategoryRef> getOrderCategoriesById(Collection<UUID> orderCategoryIds) {
+        if (orderCategoryIds == null || orderCategoryIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return orderCategoryRepository.findAllById(orderCategoryIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        OrderCategory::getId,
+                        this::toOrderCategoryRef
+                ));
+    }
+
+    @Override
+    public Map<UUID, PlanetRef> getPlanetsById(Collection<UUID> planetIds) {
+        if  (planetIds == null || planetIds.isEmpty()) {
+            return Map.of();
+        }
+        return planetRepository.findAllById(planetIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        Planet::getId,
+                        this::toPlanetRef
+                ));
+    }
+
+    @Override
+    public Map<String, CurrencyRef> getCurrenciesByIds(Collection<String> currencyCodes) {
+        if (currencyCodes == null || currencyCodes.isEmpty()) {
+            return Map.of();
+        }
+        List<String> normalizedCodes = currencyCodes.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .map(String::toUpperCase)
+                .distinct()
+                .toList();
+
+        return currencyRepository.findAllById(normalizedCodes)
+                .stream()
+                .collect(Collectors.toMap(
+                        Currency::getCode,
+                        this::toCurrencyRef
+                ));
+
+    }
+
+    @Override
+    public Map<UUID, SectorRef> getSectorsByIds(Collection<UUID> sectorIds) {
+        if (sectorIds == null || sectorIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return sectorRepository.findAllById(sectorIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        Sector::getId,
+                        this::toSectorRef
+                ));
+    }
+
+    private FactionRef toFactionRef(Faction faction) {
         return new FactionRef(
                 faction.getId(),
                 faction.getName(),
@@ -51,28 +190,7 @@ public class JpaDictionaryLookup implements DictionaryLookup {
         );
     }
 
-    @Override
-    public SectorRef getSector(UUID sectorId) {
-        Sector sector = sectorRepository.findById(sectorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Sector not found: " + sectorId));
-
-        UUID controllingFactionId = sector.getControllingFaction() == null
-                ? null
-                : sector.getControllingFaction().getId();
-
-        return new SectorRef(
-                sector.getId(),
-                controllingFactionId,
-                sector.getName(),
-                sector.getStabilityLevel(),
-                sector.getDangerLevel()
-        );
-    }
-
-    @Override
-    public PlanetRef getPlanet(UUID planetId) {
-        Planet planet = planetRepository.findById(planetId)
-                .orElseThrow(() -> new ResourceNotFoundException("Planet not found: " + planetId));
+    private PlanetRef toPlanetRef(Planet planet) {
 
         UUID sectorId = planet.getSector() == null
                 ? null
@@ -93,12 +211,21 @@ public class JpaDictionaryLookup implements DictionaryLookup {
         );
     }
 
-    @Override
-    public CurrencyRef getCurrency(String currencyCode) {
-        String code = currencyCode.trim().toUpperCase();
-        Currency currency = currencyRepository.findById(code)
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + code));
+    private SectorRef toSectorRef(Sector sector) {
+        UUID controllingFactionId = sector.getControllingFaction() == null
+                ? null
+                : sector.getControllingFaction().getId();
 
+        return new SectorRef(
+                sector.getId(),
+                controllingFactionId,
+                sector.getName(),
+                sector.getStabilityLevel(),
+                sector.getDangerLevel()
+        );
+    }
+
+    private CurrencyRef toCurrencyRef(Currency currency) {
         return new CurrencyRef(
                 currency.getCode(),
                 currency.getName(),
@@ -107,11 +234,7 @@ public class JpaDictionaryLookup implements DictionaryLookup {
         );
     }
 
-    @Override
-    public OrderCategoryRef getOrderCategory(UUID categoryId) {
-        OrderCategory category = orderCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order category not found: " + categoryId));
-
+    private OrderCategoryRef toOrderCategoryRef(OrderCategory category) {
         return new OrderCategoryRef(
                 category.getId(),
                 category.getName(),
@@ -120,11 +243,7 @@ public class JpaDictionaryLookup implements DictionaryLookup {
         );
     }
 
-    @Override
-    public SkillRef getSkill(UUID skillId) {
-        Skill skill = skillRepository.findById(skillId)
-                .orElseThrow(() -> new ResourceNotFoundException("Skill not found: " + skillId));
-
+    private SkillRef toSkillRef(Skill skill) {
         return new SkillRef(
                 skill.getId(),
                 skill.getName()

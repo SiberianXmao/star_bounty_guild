@@ -6,8 +6,10 @@ import com.stud.backend.orders.domain.enums.OrderStatus;
 import com.stud.backend.orders.domain.enums.OrderVisibility;
 import com.stud.backend.orders.domain.enums.RiskLevel;
 import com.stud.backend.orders.domain.enums.UrgencyLevel;
+
 import com.stud.backend.profiles.domain.ClientProfile;
 import com.stud.backend.profiles.domain.HunterProfile;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -34,12 +36,18 @@ import java.util.UUID;
 public class BountyOrder extends BaseUuidEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
+    @JoinColumn(name = "client_id", insertable = false, updatable = false)
     private ClientProfile client;
 
+    @Column(name = "client_id", nullable = false)
+    private UUID clientId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assigned_hunter_id")
+    @JoinColumn(name = "assigned_hunter_id", insertable = false, updatable = false)
     private HunterProfile assignedHunter;
+
+    @Column(name = "assigned_hunter_id")
+    private UUID assignedHunterId;
 
     @Column(name = "title", nullable = false, length = 200)
     private String title;

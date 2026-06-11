@@ -4,19 +4,26 @@ package com.stud.backend.applications.service;
 import com.stud.backend.applications.domain.OrderApplication;
 import com.stud.backend.applications.domain.enums.ApplicationStatus;
 import com.stud.backend.applications.repository.OrderApplicationRepository;
+
 import com.stud.backend.common.exception.BadRequestException;
 import com.stud.backend.common.exception.DuplicateResourceException;
 import com.stud.backend.common.exception.ResourceNotFoundException;
+
 import com.stud.backend.orders.domain.BountyOrder;
 import com.stud.backend.orders.domain.enums.AcceptanceMode;
 import com.stud.backend.orders.domain.enums.OrderStatus;
 import com.stud.backend.orders.repository.BountyOrderRepository;
+
 import com.stud.backend.profiles.domain.ClientProfile;
 import com.stud.backend.profiles.domain.HunterProfile;
 import com.stud.backend.profiles.repository.ClientProfileRepository;
 import com.stud.backend.profiles.repository.HunterProfileRepository;
+import com.stud.backend.profiles.api.HunterProfileRef;
+import com.stud.backend.profiles.api.ProfileLookup;
+
 import com.stud.backend.users.domain.User;
 import com.stud.backend.users.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +42,7 @@ public class OrderApplicationService {
     private final HunterProfileRepository hunterProfileRepository;
     private final BountyOrderRepository bountyOrderRepository;
     private final OrderApplicationRepository orderApplicationRepository;
+    private final ProfileLookup profileLookup;
 
     @Transactional
     public ApplicationResponse applyToOrder(String email, UUID orderId, ApplicationCreateRequest request) {
@@ -53,13 +61,13 @@ public class OrderApplicationService {
             throw new BadRequestException("You cannot apply to your own order");
         }
 
-        if (orderApplicationRepository.existsByOrder_IdAndHunter_Id(order.getId(), hunter.getId())) {
+        if (orderApplicationRepository.existsByOrder_IdAndHunterId(order.getId(), hunter.getId())) {
             throw new DuplicateResourceException("You have already applied to this order");
         }
 
         OrderApplication application = new OrderApplication();
         application.setOrder(order);
-        application.setHunter(hunter);
+        application.setHunterId(hunter.getId());
         application.setMessage(request.message());
         application.setProposedReward(request.proposedReward());
         application.setStatus(ApplicationStatus.PENDING);
@@ -70,7 +78,7 @@ public class OrderApplicationService {
     public List<ApplicationResponse> getMyHunterApplications(String email) {
         HunterProfile hunter = findCurrentHunterProfile(email);
 
-        return orderApplicationRepository.findAllByHunter_IdOrderByCreatedAtDesc(hunter.getId())
+        return orderApplicationRepository.findAllByHunterIdOrderByCreatedAtDesc(hunter.getId())
                 .stream()
                 .map(this::toApplicationResponse)
                 .toList();
@@ -93,7 +101,7 @@ public class OrderApplicationService {
         HunterProfile hunter = findCurrentHunterProfile(email);
         OrderApplication application = findApplication(applicationId);
 
-        if (!application.getHunter().getId().equals(hunter.getId())) {
+        if (!application.getHunterId().equals(hunter.getId())) {
             throw new ResourceNotFoundException("Application not found: " + applicationId);
         }
 
@@ -133,7 +141,7 @@ public class OrderApplicationService {
             }
         }
 
-        order.setAssignedHunter(application.getHunter());
+        order.setAssignedHunterId(application.getHunterId());
         order.setStatus(OrderStatus.ASSIGNED);
 
         bountyOrderRepository.save(order);
@@ -189,12 +197,14 @@ public class OrderApplicationService {
     }
 
     private void ensureOrderOwner(BountyOrder order, ClientProfile client) {
-        if (!order.getClient().getId().equals(client.getId())) {
+        if (!order.getClientId().equals(client.getId())) {
             throw new ResourceNotFoundException("Order not found: " + order.getId());
         }
     }
 
     private ApplicationResponse toApplicationResponse(OrderApplication application) {
+        HunterProfileRef hunter = profileLookup.getHunterProfile(application.getHunterId());
+
         return new ApplicationResponse(
                 application.getId(),
 
@@ -202,8 +212,8 @@ public class OrderApplicationService {
                 application.getOrder().getTitle(),
                 application.getOrder().getStatus(),
 
-                application.getHunter().getId(),
-                application.getHunter().getCallsign(),
+                hunter.id(),
+                hunter.callsign(),
 
                 application.getMessage(),
                 application.getProposedReward(),

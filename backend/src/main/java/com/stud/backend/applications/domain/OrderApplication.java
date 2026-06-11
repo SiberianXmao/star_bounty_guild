@@ -20,6 +20,7 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -42,8 +43,11 @@ public class OrderApplication extends BaseUuidEntity {
     private BountyOrder order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hunter_id", nullable = false)
+    @JoinColumn(name = "hunter_id", insertable = false, updatable = false)
     private HunterProfile hunter;
+
+    @Column(name = "hunter_id", nullable = false)
+    private UUID hunterId;
 
     @Column(name = "message", columnDefinition = "text")
     private String message;

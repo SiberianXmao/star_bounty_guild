@@ -20,10 +20,11 @@ import com.stud.backend.orders.repository.BountyOrderRepository;
 import com.stud.backend.orders.repository.BountyOrderSpecifications;
 import com.stud.backend.orders.web.dto.OrderDtos;
 
-import com.stud.backend.profiles.domain.ClientProfile;
-import com.stud.backend.profiles.domain.HunterProfile;
-import com.stud.backend.profiles.repository.ClientProfileRepository;
-import com.stud.backend.profiles.repository.HunterProfileRepository;
+import com.stud.backend.profiles.api.ProfileProgressUpdater;
+
+import com.stud.backend.profiles.api.ClientProfileRef;
+import com.stud.backend.profiles.api.HunterProfileRef;
+import com.stud.backend.profiles.api.ProfileLookup;
 
 import com.stud.backend.users.domain.User;
 import com.stud.backend.users.repository.UserRepository;
@@ -38,7 +39,11 @@ import com.stud.backend.orders.web.dto.OrderDtos.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,28 +51,28 @@ import java.util.UUID;
 public class OrderService {
 
     private final UserRepository userRepository;
-    private final ClientProfileRepository clientProfileRepository;
 
     // ------------------- замена
     private final DictionaryLookup dictionaryLookup;
+    private final ProfileLookup profileLookup;
+    private final ProfileProgressUpdater profileProgressUpdater;
 
     //----------------
 
-    private final HunterProfileRepository hunterProfileRepository;
 
     private final BountyOrderRepository bountyOrderRepository;
 
     @Transactional
     public OrderResponse createDraft(String email, OrderDtos.OrderCreateRequest request) {
-        ClientProfile clientProfile = findCurrentClientProfile(email);
-        OrderCategoryRef category = findCategory(request.categoryId());
-        CurrencyRef currency = findCurrency(request.rewardCurrencyCode());
+        ClientProfileRef clientProfile = findCurrentClientProfile(email);
+        OrderCategoryRef category = requireActiveCategory(request.categoryId());
+        CurrencyRef currency = requireActiveCurrency(request.rewardCurrencyCode());
         PlanetRef planet = request.planetId() == null ? null : findPlanet(request.planetId());
         SectorRef sector = request.sectorId() == null ? null : findSector(request.sectorId());
 
         BountyOrder order = new BountyOrder();
-        order.setClient(clientProfile);
-        order.setAssignedHunter(null);
+        order.setClientId(clientProfile.id());
+        order.setAssignedHunterId(null);
         order.setTitle(request.title().trim());
         order.setDescription(request.description().trim());
 
@@ -97,7 +102,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse updateDraft(String email, UUID orderId, OrderUpdateDraftRequest request) {
-        ClientProfile clientProfile = findCurrentClientProfile(email);
+        ClientProfileRef clientProfile = findCurrentClientProfile(email);
         BountyOrder order = findOrder(orderId);
 
         ensureOwner(order, clientProfile);
@@ -112,7 +117,7 @@ public class OrderService {
         }
 
         if (request.categoryId() != null) {
-            order.setCategoryId(findCategory(request.categoryId()).id());
+            order.setCategoryId(requireActiveCategory(request.categoryId()).id());
         }
 
         if (request.rewardAmount() != null) {
@@ -120,7 +125,7 @@ public class OrderService {
         }
 
         if (request.rewardCurrencyCode() != null) {
-            order.setRewardCurrencyCode(findCurrency(request.rewardCurrencyCode()).code());
+            order.setRewardCurrencyCode(requireActiveCurrency(request.rewardCurrencyCode()).code());
         }
 
         if (request.planetId() != null) {
@@ -160,7 +165,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse publish(String email, UUID orderId) {
-        ClientProfile clientProfile = findCurrentClientProfile(email);
+        ClientProfileRef clientProfile = findCurrentClientProfile(email);
         BountyOrder order = findOrder(orderId);
 
         ensureOwner(order, clientProfile);
@@ -182,7 +187,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse cancel(String email, UUID orderId) {
-        ClientProfile clientProfile = findCurrentClientProfile(email);
+        ClientProfileRef clientProfile = findCurrentClientProfile(email);
         BountyOrder order = findOrder(orderId);
 
         ensureOwner(order, clientProfile);
@@ -197,16 +202,15 @@ public class OrderService {
     }
 
     public PageResponse<OrderResponse> getMyHunterOrders(String email, Pageable pageable) {
-        HunterProfile hunterProfile = findCurrentHunterProfile(email);
+        HunterProfileRef hunterProfile = findCurrentHunterProfile(email);
 
-        Page<OrderResponse> page = bountyOrderRepository.findAllByAssignedHunterId(hunterProfile.getId(), pageable)
-                .map(this::toOrderResponse);
+        Page<BountyOrder> page = bountyOrderRepository.findAllByAssignedHunterId(hunterProfile.id(), pageable);
 
-        return toPageResponse(page);
+        return toPageResponse(page,toOrderResponses(page.getContent()));
     }
 
     public OrderResponse getMyHunterOrder(String email, UUID orderId) {
-        HunterProfile hunterProfile = findCurrentHunterProfile(email);
+        HunterProfileRef hunterProfile = findCurrentHunterProfile(email);
         BountyOrder order = findOrder(orderId);
 
         ensureAssignedHunter(order, hunterProfile);
@@ -216,7 +220,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse startOrder(String email, UUID orderId) {
-        HunterProfile hunterProfile = findCurrentHunterProfile(email);
+        HunterProfileRef hunterProfile = findCurrentHunterProfile(email);
         BountyOrder order = findOrder(orderId);
 
         ensureAssignedHunter(order, hunterProfile);
@@ -232,7 +236,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse submitOrder(String email, UUID orderId) {
-        HunterProfile hunterProfile = findCurrentHunterProfile(email);
+        HunterProfileRef hunterProfile = findCurrentHunterProfile(email);
         BountyOrder order = findOrder(orderId);
 
         ensureAssignedHunter(order, hunterProfile);
@@ -248,7 +252,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse completeOrder(String email, UUID orderId) {
-        ClientProfile clientProfile = findCurrentClientProfile(email);
+        ClientProfileRef clientProfile = findCurrentClientProfile(email);
         BountyOrder order = findOrder(orderId);
 
         ensureOwner(order, clientProfile);
@@ -257,34 +261,32 @@ public class OrderService {
             throw new BadRequestException("Only SUBMITTED orders can be completed");
         }
 
-        if (order.getAssignedHunter() == null) {
+        UUID clientProfileId = order.getClientId();
+        UUID hunterProfileId = order.getAssignedHunterId();
+
+        if (hunterProfileId == null) {
             throw new BadRequestException("Order has no assigned hunter");
         }
 
         order.setStatus(OrderStatus.COMPLETED);
         order.setCompletedAt(Instant.now());
 
-        ClientProfile client = order.getClient();
-        HunterProfile hunter = order.getAssignedHunter();
-
-        client.setCompletedOrdersCount(client.getCompletedOrdersCount() + 1);
-        hunter.setCompletedOrdersCount(hunter.getCompletedOrdersCount() + 1);
+        profileProgressUpdater.recordCompletedOrder(clientProfileId, hunterProfileId);
 
         return toOrderResponse(bountyOrderRepository.save(order));
     }
 
-    private void ensureAssignedHunter(BountyOrder order, HunterProfile hunterProfile) {
-        if (order.getAssignedHunter() == null || !order.getAssignedHunter().getId().equals(hunterProfile.getId())) {
+    private void ensureAssignedHunter(BountyOrder order, HunterProfileRef hunterProfile) {
+        if (order.getAssignedHunterId() == null || !order.getAssignedHunterId().equals(hunterProfile.id())) {
             throw new ResourceNotFoundException("Order not found: " + order.getId());
         }
     }
 
-    private HunterProfile findCurrentHunterProfile(String email) {
+    private HunterProfileRef findCurrentHunterProfile(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 
-        return hunterProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Hunter profile not found for current user"));
+        return profileLookup.getHunterProfileByUserId(user.getId());
     }
 
     public PageResponse<OrderResponse> getPublicOrders(
@@ -311,10 +313,9 @@ public class OrderService {
                 .and(BountyOrderSpecifications.rewardMax(rewardMax))
                 .and(BountyOrderSpecifications.search(q));
 
-        Page<OrderResponse> page = bountyOrderRepository.findAll(spec, pageable)
-                .map(this::toOrderResponse);
+        Page<BountyOrder> page = bountyOrderRepository.findAll(spec,pageable);
 
-        return toPageResponse(page);
+        return toPageResponse(page, toOrderResponses(page.getContent()));
     }
 
     public OrderResponse getPublicOrder(UUID orderId) {
@@ -328,16 +329,15 @@ public class OrderService {
     }
 
     public PageResponse<OrderResponse> getMyClientOrders(String email, Pageable pageable) {
-        ClientProfile clientProfile = findCurrentClientProfile(email);
+        ClientProfileRef clientProfile = findCurrentClientProfile(email);
 
-        Page<OrderResponse> page = bountyOrderRepository.findAllByClientId(clientProfile.getId(), pageable)
-                .map(this::toOrderResponse);
+        Page<BountyOrder> page = bountyOrderRepository.findAllByClientId(clientProfile.id(), pageable);
 
-        return toPageResponse(page);
+        return toPageResponse(page, toOrderResponses(page.getContent()));
     }
 
     public OrderResponse getMyClientOrder(String email, UUID orderId) {
-        ClientProfile clientProfile = findCurrentClientProfile(email);
+        ClientProfileRef clientProfile = findCurrentClientProfile(email);
         BountyOrder order = findOrder(orderId);
 
         ensureOwner(order, clientProfile);
@@ -345,12 +345,11 @@ public class OrderService {
         return toOrderResponse(order);
     }
 
-    private ClientProfile findCurrentClientProfile(String email) {
+    private ClientProfileRef findCurrentClientProfile(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 
-        return clientProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Client profile not found for current user"));
+        return profileLookup.getClientProfileByUserId(user.getId());
     }
 
     private BountyOrder findOrder(UUID orderId) {
@@ -359,8 +358,13 @@ public class OrderService {
     }
 
     // ------ entity пока оставлем чтобы все не сломать
-    private OrderCategoryRef findCategory(UUID categoryId) {
-        OrderCategoryRef category = dictionaryLookup.getOrderCategory(categoryId);
+
+    private OrderCategoryRef findCategory(UUID categoryId){
+        return dictionaryLookup.getOrderCategory(categoryId);
+    }
+
+    private OrderCategoryRef requireActiveCategory(UUID categoryId) {
+        OrderCategoryRef category = findCategory(categoryId);
 
         if (!Boolean.TRUE.equals(category.active())){
             throw new BadRequestException("Category is not active " + categoryId);
@@ -369,12 +373,16 @@ public class OrderService {
     }
 
     private CurrencyRef findCurrency(String code) {
+        return dictionaryLookup.getCurrency(code);
+    }
 
-        CurrencyRef currency = dictionaryLookup.getCurrency(code);
+    private CurrencyRef requireActiveCurrency(String code) {
+        CurrencyRef currency = findCurrency(code);
 
-        if (!Boolean.TRUE.equals(currency.active())){
+        if (!Boolean.TRUE.equals(currency.active())) {
             throw new BadRequestException("Currency is not active " + code);
         }
+
         return currency;
     }
 
@@ -390,8 +398,8 @@ public class OrderService {
 
     //------
 
-    private void ensureOwner(BountyOrder order, ClientProfile clientProfile) {
-        if (!order.getClient().getId().equals(clientProfile.getId())) {
+    private void ensureOwner(BountyOrder order, ClientProfileRef clientProfile) {
+        if (!order.getClientId().equals(clientProfile.id())) {
             throw new ResourceNotFoundException("Order not found: " + order.getId());
         }
     }
@@ -403,8 +411,12 @@ public class OrderService {
     }
 
     private OrderResponse toOrderResponse(BountyOrder order) {
-        ClientProfile client = order.getClient();
-        HunterProfile hunter = order.getAssignedHunter();
+
+        UUID clientProfileId = order.getClientId();
+        UUID hunterProfileId = order.getAssignedHunterId();
+
+        ClientProfileRef client = profileLookup.getClientProfile(clientProfileId);
+        HunterProfileRef hunter =  hunterProfileId == null ?  null : profileLookup.getHunterProfile(hunterProfileId);
 
         OrderCategoryRef category = findCategory(order.getCategoryId());
         CurrencyRef currency = findCurrency(order.getRewardCurrencyCode());
@@ -418,13 +430,13 @@ public class OrderService {
         return new OrderResponse(
                 order.getId(),
 
-                client.getId(),
-                client.getName(),
-                client.getAverageRating(),
-                client.getReliabilityScore(),
+                client.id(),
+                client.name(),
+                client.averageRating(),
+                client.reliabilityScore(),
 
-                hunter == null ? null : hunter.getId(),
-                hunter == null ? null : hunter.getCallsign(),
+                hunter == null ? null : hunter.id(),
+                hunter == null ? null : hunter.callsign(),
 
                 order.getTitle(),
                 order.getDescription(),
@@ -458,6 +470,127 @@ public class OrderService {
         );
     }
 
+    private List<OrderResponse> toOrderResponses(List<BountyOrder> orders) {
+        if (orders.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID,ClientProfileRef> clientsById = profileLookup.getClientProfilesByIds(
+                orders.stream()
+                        .map(BountyOrder::getClientId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<UUID,HunterProfileRef> huntersById = profileLookup.getHunterProfilesByIds(
+                orders.stream()
+                        .map(BountyOrder::getAssignedHunterId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<UUID, OrderCategoryRef> categoriesById = dictionaryLookup.getOrderCategoriesById(
+                orders.stream()
+                        .map(BountyOrder::getCategoryId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<String, CurrencyRef> currenciesByCode = dictionaryLookup.getCurrenciesByIds(
+                orders.stream()
+                        .map(BountyOrder::getRewardCurrencyCode)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<UUID,PlanetRef> planetsById = dictionaryLookup.getPlanetsById(
+                orders.stream()
+                        .map(BountyOrder::getPlanetId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<UUID, SectorRef> sectorsById = dictionaryLookup.getSectorsByIds(
+                orders.stream()
+                        .map(BountyOrder::getSectorId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        return orders.stream()
+                .map(order -> toOrderResponse(order,clientsById,huntersById, categoriesById, currenciesByCode, planetsById,sectorsById))
+                .toList();
+
+    }
+
+    private OrderResponse toOrderResponse(
+            BountyOrder order,
+            Map<UUID,ClientProfileRef> clientsById,
+            Map<UUID, HunterProfileRef> huntersById,
+            Map<UUID, OrderCategoryRef> categoriesById,
+            Map<String, CurrencyRef> currenciesByCode,
+            Map<UUID, PlanetRef> planetsById,
+            Map<UUID, SectorRef> sectorsById
+    ) {
+//        ClientProfile client = order.getClient();
+//        HunterProfile hunter = order.getAssignedHunter();
+        UUID clientProfileId = order.getClientId();
+        UUID hunterProfileId = order.getAssignedHunterId();
+
+        ClientProfileRef client = clientsById.get(clientProfileId);
+        HunterProfileRef hunter = hunterProfileId == null ? null : huntersById.get(hunterProfileId);
+
+        OrderCategoryRef category = categoriesById.get(order.getCategoryId());
+        CurrencyRef currency = currenciesByCode.get(order.getRewardCurrencyCode());
+        PlanetRef planet = order.getPlanetId() == null ? null : planetsById.get(order.getPlanetId());
+        SectorRef sector = order.getSectorId() == null ? null : sectorsById.get(order.getSectorId());
+
+        if (client == null){
+            throw new ResourceNotFoundException("Client profile not found: " + clientProfileId);
+        }
+
+        if (category == null) {
+            throw new ResourceNotFoundException("Order category not found: " + order.getCategoryId());
+        }
+
+        if (currency == null) {
+            throw new ResourceNotFoundException("Currency not found: " + order.getRewardCurrencyCode());
+        }
+
+        return new OrderResponse(
+                order.getId(),
+                client.id(),
+                client.name(),
+                client.averageRating(),
+                client.reliabilityScore(),
+                hunter == null ? null : hunter.id(),
+                hunter == null ? null : hunter.callsign(),
+                order.getTitle(),
+                order.getDescription(),
+                category.id(),
+                category.name(),
+                order.getRewardAmount(),
+                currency.code(),
+                currency.name(),
+                currency.symbol(),
+                planet == null ? null : planet.id(),
+                planet == null ? null : planet.name(),
+                sector == null ? null : sector.id(),
+                sector == null ? null : sector.name(),
+                order.getRiskLevel(),
+                order.getUrgencyLevel(),
+                order.getStatus(),
+                order.getVisibility(),
+                order.getAcceptanceMode(),
+                order.getRequirements(),
+                order.getDeadline(),
+                order.getCreatedAt(),
+                order.getUpdatedAt(),
+                order.getPublishedAt(),
+                order.getCompletedAt()
+        );
+    }
+
     private <T> PageResponse<T> toPageResponse(Page<T> page) {
         return new PageResponse<>(
                 page.getContent(),
@@ -469,4 +602,17 @@ public class OrderService {
                 page.isLast()
         );
     }
+
+    private <T> PageResponse<T> toPageResponse(Page<?> page, List<T> content) {
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isFirst(),
+                page.isLast()
+        );
+    }
+
 }

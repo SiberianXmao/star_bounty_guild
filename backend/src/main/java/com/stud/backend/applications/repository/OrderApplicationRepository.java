@@ -12,7 +12,7 @@ import java.util.UUID;
 
 public interface OrderApplicationRepository extends JpaRepository<OrderApplication, UUID> {
 
-    boolean existsByOrder_IdAndHunter_Id(UUID orderId, UUID hunterId);
+    boolean existsByOrder_IdAndHunterId(UUID orderId, UUID hunterId);
 
     @Override
     @EntityGraph(attributePaths = {"order", "hunter"})
@@ -22,7 +22,7 @@ public interface OrderApplicationRepository extends JpaRepository<OrderApplicati
     List<OrderApplication> findAllByOrder_Id(UUID orderId);
 
     @EntityGraph(attributePaths = {"order", "hunter"})
-    List<OrderApplication> findAllByHunter_IdOrderByCreatedAtDesc(UUID hunterId);
+    List<OrderApplication> findAllByHunterIdOrderByCreatedAtDesc(UUID hunterId);
 
     @EntityGraph(attributePaths = {"order", "hunter"})
     List<OrderApplication> findAllByOrder_IdAndStatus(UUID orderId, ApplicationStatus status);

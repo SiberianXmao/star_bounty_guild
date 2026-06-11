@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -68,21 +69,52 @@ public class ProfileService {
     }
 
     public List<ClientProfileResponse> getClientProfiles() {
-        return clientProfileRepository.findAll(Sort.by("name"))
-                .stream()
-                .map(this::toClientProfileResponse)
+        List<ClientProfile> profiles = clientProfileRepository.findAll(Sort.by("name"));
+
+        Map<UUID,FactionRef> factionsById = dictionaryLookup.getFactionsByIds(
+                profiles.stream()
+                        .map(ClientProfile::getFactionId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<UUID,PlanetRef> planetsById = dictionaryLookup.getPlanetsById(
+                profiles.stream()
+                        .map(ClientProfile::getPlanetId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        return profiles.stream()
+                .map(profile -> toClientProfileResponse(profile, factionsById,planetsById))
                 .toList();
     }
 
     public List<HunterProfileResponse> getHunterProfiles() {
         List<HunterProfile> profiles = hunterProfileRepository.findAll(Sort.by("callsign"));
-        Map<UUID, List<HunterSkillResponse>> skillsByHunterProfileId = getSkillsByHunterProfileId(profiles);
 
-        return profiles
-                .stream()
+        Map<UUID,FactionRef> factionsById = dictionaryLookup.getFactionsByIds(
+                profiles.stream()
+                        .map(HunterProfile::getFactionId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<UUID,PlanetRef> planetsById = dictionaryLookup.getPlanetsById(
+                profiles.stream()
+                        .map(HunterProfile::getHomePlanetId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<UUID,List<HunterSkillResponse>> skillsByHunterProfileId = getSkillsByHunterProfileId(profiles);
+
+        return profiles.stream()
                 .map(profile -> toHunterProfileResponse(
                         profile,
-                        skillsByHunterProfileId.getOrDefault(profile.getId(), List.of())
+                        skillsByHunterProfileId.getOrDefault(profile.getId(),List.of()),
+                        factionsById,
+                        planetsById
                 ))
                 .toList();
     }
@@ -257,6 +289,35 @@ public class ProfileService {
         );
     }
 
+    private ClientProfileResponse toClientProfileResponse(
+            ClientProfile profile,
+            Map<UUID, FactionRef> factionsById,
+            Map<UUID, PlanetRef> planetsById
+    ) {
+        FactionRef faction = profile.getFactionId() == null
+                ? null
+                : factionsById.get(profile.getFactionId());
+
+        PlanetRef planet = profile.getPlanetId() == null
+                ? null
+                : planetsById.get(profile.getPlanetId());
+
+        return new ClientProfileResponse(
+                profile.getId(),
+                profile.getUser().getId(),
+                profile.getName(),
+                profile.getDescription(),
+                faction == null ? null : faction.id(),
+                faction == null ? null : faction.name(),
+                planet == null ? null : planet.id(),
+                planet == null ? null : planet.name(),
+                profile.getReliabilityScore(),
+                profile.getAverageRating(),
+                profile.getCompletedOrdersCount(),
+                profile.getCancelledOrdersCount()
+        );
+    }
+
     private HunterProfileResponse toHunterProfileResponse(HunterProfile profile) {
         List<HunterSkillResponse> skills = hunterSkillRepository.findAllByHunterProfileId(profile.getId())
                 .stream()
@@ -298,11 +359,22 @@ public class ProfileService {
                 .map(HunterProfile::getId)
                 .toList();
 
-        return hunterSkillRepository.findAllByHunterProfile_IdIn(hunterProfileIds)
-                .stream()
+        List<HunterSkill> hunterSkills = hunterSkillRepository.findAllByHunterProfile_IdIn(hunterProfileIds);
+
+        Map<UUID, SkillRef> skillsById = dictionaryLookup.getSkillsById(
+                hunterSkills.stream()
+                        .map(hunterSkill -> hunterSkill.getId().getSkillId())
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        return hunterSkills.stream()
                 .collect(Collectors.groupingBy(
                         hunterSkill -> hunterSkill.getId().getHunterProfileId(),
-                        Collectors.mapping(this::toHunterSkillResponse, Collectors.toList())
+                        Collectors.mapping(
+                                hunterSkill -> toHunterSkillResponse(hunterSkill, skillsById),
+                                Collectors.toList()
+                        )
                 ));
     }
 
@@ -313,6 +385,53 @@ public class ProfileService {
                 skill.id(),
                 skill.name(),
                 hunterSkill.getLevel()
+        );
+    }
+
+    private HunterSkillResponse toHunterSkillResponse(
+            HunterSkill hunterSkill,
+            Map<UUID, SkillRef> skillsById
+    ) {
+        UUID skillId = hunterSkill.getId().getSkillId();
+        SkillRef skill = skillsById.get(skillId);
+
+        return new HunterSkillResponse(
+                skillId,
+                skill == null ? null : skill.name(),
+                hunterSkill.getLevel()
+        );
+    }
+
+    private HunterProfileResponse toHunterProfileResponse(
+            HunterProfile profile,
+            List<HunterSkillResponse> skills,
+            Map<UUID, FactionRef> factionsById,
+            Map<UUID, PlanetRef> planetsById
+    ) {
+        FactionRef faction = profile.getFactionId() == null
+                ? null
+                : factionsById.get(profile.getFactionId());
+
+        PlanetRef homePlanet = profile.getHomePlanetId() == null
+                ? null
+                : planetsById.get(profile.getHomePlanetId());
+
+        return new HunterProfileResponse(
+                profile.getId(),
+                profile.getUser().getId(),
+                profile.getCallsign(),
+                profile.getBio(),
+                faction == null ? null : faction.id(),
+                faction == null ? null : faction.name(),
+                homePlanet == null ? null : homePlanet.id(),
+                homePlanet == null ? null : homePlanet.name(),
+                profile.getAvailabilityStatus(),
+                profile.getMinReward(),
+                profile.getReliabilityScore(),
+                profile.getAverageRating(),
+                profile.getCompletedOrdersCount(),
+                profile.getFailedOrdersCount(),
+                skills
         );
     }
 }
