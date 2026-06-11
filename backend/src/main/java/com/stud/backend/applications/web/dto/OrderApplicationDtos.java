@@ -2,7 +2,6 @@ package com.stud.backend.applications.web.dto;
 
 
 import com.stud.backend.applications.domain.enums.ApplicationStatus;
-import com.stud.backend.orders.domain.enums.OrderStatus;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 
@@ -26,7 +25,7 @@ public final class OrderApplicationDtos {
 
             UUID orderId,
             String orderTitle,
-            OrderStatus orderStatus,
+            String orderStatus,
 
             UUID hunterId,
             String hunterCallsign,

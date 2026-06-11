@@ -78,7 +78,7 @@ public class JpaProfileLookup implements ProfileLookup {
     private ClientProfileRef toClientRef(ClientProfile profile) {
         return new ClientProfileRef(
                 profile.getId(),
-                profile.getUser().getId(),
+                profile.getUserId(),
                 profile.getName(),
                 profile.getAverageRating(),
                 profile.getReliabilityScore()
@@ -88,7 +88,7 @@ public class JpaProfileLookup implements ProfileLookup {
     private HunterProfileRef toHunterRef(HunterProfile profile) {
         return new HunterProfileRef(
                 profile.getId(),
-                profile.getUser().getId(),
+                profile.getUserId(),
                 profile.getCallsign(),
                 profile.getAverageRating(),
                 profile.getReliabilityScore()

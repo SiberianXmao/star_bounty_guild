@@ -7,16 +7,10 @@ import com.stud.backend.orders.domain.enums.OrderVisibility;
 import com.stud.backend.orders.domain.enums.RiskLevel;
 import com.stud.backend.orders.domain.enums.UrgencyLevel;
 
-import com.stud.backend.profiles.domain.ClientProfile;
-import com.stud.backend.profiles.domain.HunterProfile;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,16 +29,8 @@ import java.util.UUID;
 @Table(name = "orders", schema = "bounty")
 public class BountyOrder extends BaseUuidEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", insertable = false, updatable = false)
-    private ClientProfile client;
-
     @Column(name = "client_id", nullable = false)
     private UUID clientId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assigned_hunter_id", insertable = false, updatable = false)
-    private HunterProfile assignedHunter;
 
     @Column(name = "assigned_hunter_id")
     private UUID assignedHunterId;

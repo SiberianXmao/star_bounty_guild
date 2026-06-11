@@ -26,9 +26,8 @@ import com.stud.backend.profiles.api.ClientProfileRef;
 import com.stud.backend.profiles.api.HunterProfileRef;
 import com.stud.backend.profiles.api.ProfileLookup;
 
-import com.stud.backend.users.domain.User;
-import com.stud.backend.users.repository.UserRepository;
-
+import com.stud.backend.users.api.UserLookup;
+import com.stud.backend.users.api.UserRef;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,12 +49,11 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class OrderService {
 
-    private final UserRepository userRepository;
-
     // ------------------- замена
     private final DictionaryLookup dictionaryLookup;
     private final ProfileLookup profileLookup;
     private final ProfileProgressUpdater profileProgressUpdater;
+    private final UserLookup userLookup;
 
     //----------------
 
@@ -283,10 +281,9 @@ public class OrderService {
     }
 
     private HunterProfileRef findCurrentHunterProfile(String email) {
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        UserRef user = userLookup.getByEmail(email);
 
-        return profileLookup.getHunterProfileByUserId(user.getId());
+        return profileLookup.getHunterProfileByUserId(user.id());
     }
 
     public PageResponse<OrderResponse> getPublicOrders(
@@ -346,10 +343,9 @@ public class OrderService {
     }
 
     private ClientProfileRef findCurrentClientProfile(String email) {
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        UserRef user = userLookup.getByEmail(email);
 
-        return profileLookup.getClientProfileByUserId(user.getId());
+        return profileLookup.getClientProfileByUserId(user.id());
     }
 
     private BountyOrder findOrder(UUID orderId) {
@@ -532,8 +528,6 @@ public class OrderService {
             Map<UUID, PlanetRef> planetsById,
             Map<UUID, SectorRef> sectorsById
     ) {
-//        ClientProfile client = order.getClient();
-//        HunterProfile hunter = order.getAssignedHunter();
         UUID clientProfileId = order.getClientId();
         UUID hunterProfileId = order.getAssignedHunterId();
 

@@ -2,15 +2,10 @@ package com.stud.backend.applications.domain;
 
 import com.stud.backend.applications.domain.enums.ApplicationStatus;
 import com.stud.backend.common.persistence.BaseUuidEntity;
-import com.stud.backend.orders.domain.BountyOrder;
-import com.stud.backend.profiles.domain.HunterProfile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
@@ -38,13 +33,8 @@ import java.util.UUID;
 )
 public class OrderApplication extends BaseUuidEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
-    private BountyOrder order;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hunter_id", insertable = false, updatable = false)
-    private HunterProfile hunter;
+    @Column(name = "order_id", nullable = false)
+    private UUID orderId;
 
     @Column(name = "hunter_id", nullable = false)
     private UUID hunterId;

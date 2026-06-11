@@ -9,65 +9,64 @@ import com.stud.backend.common.exception.BadRequestException;
 import com.stud.backend.common.exception.DuplicateResourceException;
 import com.stud.backend.common.exception.ResourceNotFoundException;
 
-import com.stud.backend.orders.domain.BountyOrder;
-import com.stud.backend.orders.domain.enums.AcceptanceMode;
-import com.stud.backend.orders.domain.enums.OrderStatus;
-import com.stud.backend.orders.repository.BountyOrderRepository;
+import com.stud.backend.applications.api.ApplicationAcceptedEvent;
+import com.stud.backend.applications.api.OrderApplicationEventPublisher;
 
-import com.stud.backend.profiles.domain.ClientProfile;
-import com.stud.backend.profiles.domain.HunterProfile;
-import com.stud.backend.profiles.repository.ClientProfileRepository;
-import com.stud.backend.profiles.repository.HunterProfileRepository;
+import com.stud.backend.orders.api.OrderLookup;
+import com.stud.backend.orders.api.OrderRef;
+import com.stud.backend.profiles.api.ClientProfileRef;
 import com.stud.backend.profiles.api.HunterProfileRef;
 import com.stud.backend.profiles.api.ProfileLookup;
 
-import com.stud.backend.users.domain.User;
-import com.stud.backend.users.repository.UserRepository;
-
+import com.stud.backend.users.api.UserLookup;
+import com.stud.backend.users.api.UserRef;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.stud.backend.applications.web.dto.OrderApplicationDtos.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class OrderApplicationService {
 
-    private final UserRepository userRepository;
-    private final ClientProfileRepository clientProfileRepository;
-    private final HunterProfileRepository hunterProfileRepository;
-    private final BountyOrderRepository bountyOrderRepository;
     private final OrderApplicationRepository orderApplicationRepository;
     private final ProfileLookup profileLookup;
+    private final UserLookup userLookup;
+    private final OrderLookup orderLookup;
+    private final OrderApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ApplicationResponse applyToOrder(String email, UUID orderId, ApplicationCreateRequest request) {
-        HunterProfile hunter = findCurrentHunterProfile(email);
-        BountyOrder order = findOrder(orderId);
+        HunterProfileRef hunter = findCurrentHunterProfile(email);
+        OrderRef order = findOrder(orderId);
+        ClientProfileRef orderClient = profileLookup.getClientProfile(order.clientId());
 
-        if (order.getStatus() != OrderStatus.OPEN) {
+        if (!order.isOpen()) {
             throw new BadRequestException("Only OPEN orders can receive applications");
         }
 
-        if (order.getAcceptanceMode() != AcceptanceMode.APPLICATIONS) {
+        if (!order.acceptsApplications()) {
             throw new BadRequestException("This order does not accept applications");
         }
 
-        if (order.getClient().getUser().getId().equals(hunter.getUser().getId())) {
+        if (orderClient.userId().equals(hunter.userId())) {
             throw new BadRequestException("You cannot apply to your own order");
         }
 
-        if (orderApplicationRepository.existsByOrder_IdAndHunterId(order.getId(), hunter.getId())) {
+        if (orderApplicationRepository.existsByOrderIdAndHunterId(order.id(), hunter.id())) {
             throw new DuplicateResourceException("You have already applied to this order");
         }
 
         OrderApplication application = new OrderApplication();
-        application.setOrder(order);
-        application.setHunterId(hunter.getId());
+        application.setOrderId(order.id());
+        application.setHunterId(hunter.id());
         application.setMessage(request.message());
         application.setProposedReward(request.proposedReward());
         application.setStatus(ApplicationStatus.PENDING);
@@ -76,32 +75,30 @@ public class OrderApplicationService {
     }
 
     public List<ApplicationResponse> getMyHunterApplications(String email) {
-        HunterProfile hunter = findCurrentHunterProfile(email);
+        HunterProfileRef hunter = findCurrentHunterProfile(email);
 
-        return orderApplicationRepository.findAllByHunterIdOrderByCreatedAtDesc(hunter.getId())
-                .stream()
-                .map(this::toApplicationResponse)
-                .toList();
+        List<OrderApplication> applications = orderApplicationRepository.findAllByHunterIdOrderByCreatedAtDesc(hunter.id());
+
+        return toApplicationResponses(applications);
     }
 
     public List<ApplicationResponse> getApplicationsForMyOrder(String email, UUID orderId) {
-        ClientProfile client = findCurrentClientProfile(email);
-        BountyOrder order = findOrder(orderId);
+        ClientProfileRef client = findCurrentClientProfile(email);
+        OrderRef order = findOrder(orderId);
 
         ensureOrderOwner(order, client);
 
-        return orderApplicationRepository.findAllByOrder_Id(order.getId())
-                .stream()
-                .map(this::toApplicationResponse)
-                .toList();
+        List<OrderApplication> applications = orderApplicationRepository.findAllByOrderId(order.id());
+
+        return toApplicationResponses(applications);
     }
 
     @Transactional
     public ApplicationResponse withdrawMyApplication(String email, UUID applicationId) {
-        HunterProfile hunter = findCurrentHunterProfile(email);
+        HunterProfileRef hunter = findCurrentHunterProfile(email);
         OrderApplication application = findApplication(applicationId);
 
-        if (!application.getHunterId().equals(hunter.getId())) {
+        if (!application.getHunterId().equals(hunter.id())) {
             throw new ResourceNotFoundException("Application not found: " + applicationId);
         }
 
@@ -116,13 +113,13 @@ public class OrderApplicationService {
 
     @Transactional
     public ApplicationResponse acceptApplication(String email, UUID applicationId) {
-        ClientProfile client = findCurrentClientProfile(email);
+        ClientProfileRef client = findCurrentClientProfile(email);
         OrderApplication application = findApplication(applicationId);
-        BountyOrder order = application.getOrder();
+        OrderRef order = findOrder(application.getOrderId());
 
         ensureOrderOwner(order, client);
 
-        if (order.getStatus() != OrderStatus.OPEN) {
+        if (!order.isOpen()) {
             throw new BadRequestException("Only OPEN orders can accept applications");
         }
 
@@ -133,7 +130,7 @@ public class OrderApplicationService {
         application.setStatus(ApplicationStatus.ACCEPTED);
 
         List<OrderApplication> pendingApplications =
-                orderApplicationRepository.findAllByOrder_IdAndStatus(order.getId(), ApplicationStatus.PENDING);
+                orderApplicationRepository.findAllByOrderIdAndStatus(application.getOrderId(), ApplicationStatus.PENDING);
 
         for (OrderApplication otherApplication : pendingApplications) {
             if (!otherApplication.getId().equals(application.getId())) {
@@ -141,10 +138,13 @@ public class OrderApplicationService {
             }
         }
 
-        order.setAssignedHunterId(application.getHunterId());
-        order.setStatus(OrderStatus.ASSIGNED);
 
-        bountyOrderRepository.save(order);
+
+        eventPublisher.publish(new ApplicationAcceptedEvent(
+                application.getId(),
+                application.getOrderId(),
+                application.getHunterId()
+        ));
         orderApplicationRepository.saveAll(pendingApplications);
 
         return toApplicationResponse(orderApplicationRepository.save(application));
@@ -152,9 +152,9 @@ public class OrderApplicationService {
 
     @Transactional
     public ApplicationResponse rejectApplication(String email, UUID applicationId) {
-        ClientProfile client = findCurrentClientProfile(email);
+        ClientProfileRef client = findCurrentClientProfile(email);
         OrderApplication application = findApplication(applicationId);
-        BountyOrder order = application.getOrder();
+        OrderRef order = findOrder(application.getOrderId());
 
         ensureOrderOwner(order, client);
 
@@ -167,28 +167,24 @@ public class OrderApplicationService {
         return toApplicationResponse(orderApplicationRepository.save(application));
     }
 
-    private User findUserByEmail(String email) {
-        return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+    private UserRef findUserByEmail(String email) {
+        return userLookup.getByEmail(email);
     }
 
-    private ClientProfile findCurrentClientProfile(String email) {
-        User user = findUserByEmail(email);
+    private ClientProfileRef findCurrentClientProfile(String email) {
+        UserRef user = findUserByEmail(email);
 
-        return clientProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Client profile not found for current user"));
+        return profileLookup.getClientProfileByUserId(user.id());
     }
 
-    private HunterProfile findCurrentHunterProfile(String email) {
-        User user = findUserByEmail(email);
+    private HunterProfileRef findCurrentHunterProfile(String email) {
+        UserRef user = findUserByEmail(email);
 
-        return hunterProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Hunter profile not found for current user"));
+        return  profileLookup.getHunterProfileByUserId(user.id());
     }
 
-    private BountyOrder findOrder(UUID orderId) {
-        return bountyOrderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+    private OrderRef findOrder(UUID orderId) {
+        return orderLookup.getOrder(orderId);
     }
 
     private OrderApplication findApplication(UUID applicationId) {
@@ -196,21 +192,22 @@ public class OrderApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found: " + applicationId));
     }
 
-    private void ensureOrderOwner(BountyOrder order, ClientProfile client) {
-        if (!order.getClientId().equals(client.getId())) {
-            throw new ResourceNotFoundException("Order not found: " + order.getId());
+    private void ensureOrderOwner(OrderRef order, ClientProfileRef client) {
+        if (!order.clientId().equals(client.id())) {
+            throw new ResourceNotFoundException("Order not found: " + order.id());
         }
     }
 
     private ApplicationResponse toApplicationResponse(OrderApplication application) {
         HunterProfileRef hunter = profileLookup.getHunterProfile(application.getHunterId());
+        OrderRef order = orderLookup.getOrder(application.getOrderId());
 
         return new ApplicationResponse(
                 application.getId(),
 
-                application.getOrder().getId(),
-                application.getOrder().getTitle(),
-                application.getOrder().getStatus(),
+                application.getOrderId(),
+                order.title(),
+                order.status().name(),
 
                 hunter.id(),
                 hunter.callsign(),
@@ -222,5 +219,60 @@ public class OrderApplicationService {
                 application.getCreatedAt(),
                 application.getUpdatedAt()
         );
+    }
+
+    private ApplicationResponse toApplicationResponse(
+            OrderApplication application,
+            Map<UUID, HunterProfileRef> huntersById,
+            Map<UUID, OrderRef> ordersById
+    ) {
+        HunterProfileRef hunter = huntersById.get(application.getHunterId());
+        OrderRef order = ordersById.get(application.getOrderId());
+
+        if (hunter == null) {
+            throw new ResourceNotFoundException("Hunter profile not found: " + application.getHunterId());
+        }
+
+        if (order == null) {
+            throw new ResourceNotFoundException("Order not found: " + application.getOrderId());
+        }
+
+        return new ApplicationResponse(
+                application.getId(),
+                application.getOrderId(),
+                order.title(),
+                order.status().name(),
+                hunter.id(),
+                hunter.callsign(),
+                application.getMessage(),
+                application.getProposedReward(),
+                application.getStatus(),
+                application.getCreatedAt(),
+                application.getUpdatedAt()
+        );
+    }
+
+    private List<ApplicationResponse> toApplicationResponses(List<OrderApplication> applications) {
+        if (applications.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, HunterProfileRef> huntersById = profileLookup.getHunterProfilesByIds(
+                applications.stream()
+                        .map(OrderApplication::getHunterId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        Map<UUID, OrderRef> ordersById = orderLookup.getOrdersByIds(
+                applications.stream()
+                        .map(OrderApplication::getOrderId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())
+        );
+
+        return applications.stream()
+                .map(application -> toApplicationResponse(application, huntersById, ordersById))
+                .toList();
     }
 }

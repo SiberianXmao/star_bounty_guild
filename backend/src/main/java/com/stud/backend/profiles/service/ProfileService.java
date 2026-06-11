@@ -14,17 +14,16 @@ import com.stud.backend.profiles.domain.HunterProfile;
 import com.stud.backend.profiles.domain.HunterSkill;
 import com.stud.backend.profiles.domain.HunterSkillId;
 import com.stud.backend.profiles.domain.enums.AvailabilityStatus;
+
 import com.stud.backend.profiles.repository.ClientProfileRepository;
 import com.stud.backend.profiles.repository.HunterProfileRepository;
 import com.stud.backend.profiles.repository.HunterSkillRepository;
 
-import com.stud.backend.users.domain.Role;
-import com.stud.backend.users.domain.User;
-import com.stud.backend.users.domain.UserRole;
-import com.stud.backend.users.domain.enums.RoleName;
-import com.stud.backend.users.repository.RoleRepository;
-import com.stud.backend.users.repository.UserRepository;
-import com.stud.backend.users.repository.UserRoleRepository;
+import com.stud.backend.users.api.UserLookup;
+import com.stud.backend.users.api.UserRef;
+
+import com.stud.backend.users.api.UserRoleManager;
+import com.stud.backend.users.api.UserRoleNameRef;
 
 import com.stud.backend.profiles.web.dto.ProfileDtos.*;
 import lombok.RequiredArgsConstructor;
@@ -44,24 +43,22 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ProfileService {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final UserRoleRepository userRoleRepository;
-
+    private final UserRoleManager userRoleManager;
     private final DictionaryLookup dictionaryLookup;
+    private final UserLookup userLookup;
 
     private final ClientProfileRepository clientProfileRepository;
     private final HunterProfileRepository hunterProfileRepository;
     private final HunterSkillRepository hunterSkillRepository;
 
     public MyProfilesResponse getMyProfiles(String email) {
-        User user = findUserByEmail(email);
+        UserRef user = findUserByEmail(email);
 
-        ClientProfileResponse clientProfile = clientProfileRepository.findByUserId(user.getId())
+        ClientProfileResponse clientProfile = clientProfileRepository.findByUserId(user.id())
                 .map(this::toClientProfileResponse)
                 .orElse(null);
 
-        HunterProfileResponse hunterProfile = hunterProfileRepository.findByUserId(user.getId())
+        HunterProfileResponse hunterProfile = hunterProfileRepository.findByUserId(user.id())
                 .map(this::toHunterProfileResponse)
                 .orElse(null);
 
@@ -129,14 +126,14 @@ public class ProfileService {
 
     @Transactional
     public ClientProfileResponse createMyClientProfile(String email, ClientProfileCreateRequest request) {
-        User user = findUserByEmail(email);
+        UserRef user = findUserByEmail(email);
 
-        if (clientProfileRepository.existsByUserId(user.getId())) {
+        if (clientProfileRepository.existsByUserId(user.id())) {
             throw new DuplicateResourceException("Client profile already exists for current user");
         }
 
         ClientProfile profile = new ClientProfile();
-        profile.setUser(user);
+        profile.setUserId(user.id());
         profile.setName(request.name().trim());
         profile.setDescription(request.description());
         profile.setReliabilityScore(50);
@@ -153,17 +150,17 @@ public class ProfileService {
         }
 
         ClientProfile savedProfile = clientProfileRepository.save(profile);
-        ensureUserRole(user, RoleName.CLIENT);
+        userRoleManager.ensureRole(user.id(), UserRoleNameRef.CLIENT);
 
         return toClientProfileResponse(savedProfile);
     }
 
     @Transactional
     public HunterProfileResponse createMyHunterProfile(String email, HunterProfileCreateRequest request) {
-        User user = findUserByEmail(email);
+        UserRef user = findUserByEmail(email);
         String callsign = request.callsign().trim();
 
-        if (hunterProfileRepository.existsByUserId(user.getId())) {
+        if (hunterProfileRepository.existsByUserId(user.id())) {
             throw new DuplicateResourceException("Hunter profile already exists for current user");
         }
 
@@ -172,7 +169,7 @@ public class ProfileService {
         }
 
         HunterProfile profile = new HunterProfile();
-        profile.setUser(user);
+        profile.setUserId(user.id());
         profile.setCallsign(callsign);
         profile.setBio(request.bio());
         profile.setAvailabilityStatus(
@@ -195,16 +192,16 @@ public class ProfileService {
         }
 
         HunterProfile savedProfile = hunterProfileRepository.save(profile);
-        ensureUserRole(user, RoleName.HUNTER);
+        userRoleManager.ensureRole(user.id(), UserRoleNameRef.HUNTER);
 
         return toHunterProfileResponse(savedProfile);
     }
 
     @Transactional
     public HunterProfileResponse addSkillToMyHunterProfile(String email, HunterSkillRequest request) {
-        User user = findUserByEmail(email);
+        UserRef user = findUserByEmail(email);
 
-        HunterProfile hunterProfile = hunterProfileRepository.findByUserId(user.getId())
+        HunterProfile hunterProfile = hunterProfileRepository.findByUserId(user.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Hunter profile not found for current user"));
 
         SkillRef skill = findSkill(request.skillId());
@@ -222,9 +219,9 @@ public class ProfileService {
 
     @Transactional
     public HunterProfileResponse removeSkillFromMyHunterProfile(String email, UUID skillId) {
-        User user = findUserByEmail(email);
+        UserRef user = findUserByEmail(email);
 
-        HunterProfile hunterProfile = hunterProfileRepository.findByUserId(user.getId())
+        HunterProfile hunterProfile = hunterProfileRepository.findByUserId(user.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Hunter profile not found for current user"));
 
         HunterSkillId id = new HunterSkillId(hunterProfile.getId(), skillId);
@@ -233,18 +230,8 @@ public class ProfileService {
         return toHunterProfileResponse(hunterProfile);
     }
 
-    private void ensureUserRole(User user, RoleName roleName) {
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
-
-        if (!userRoleRepository.existsByUserIdAndRoleId(user.getId(), role.getId())) {
-            userRoleRepository.save(new UserRole(user, role));
-        }
-    }
-
-    private User findUserByEmail(String email) {
-        return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+    private UserRef findUserByEmail(String email) {
+        return userLookup.getByEmail(email);
     }
 
     private ClientProfile findClientProfile(UUID profileId) {
@@ -275,7 +262,7 @@ public class ProfileService {
 
         return new ClientProfileResponse(
                 profile.getId(),
-                profile.getUser().getId(),
+                profile.getUserId(),
                 profile.getName(),
                 profile.getDescription(),
                 faction == null ? null : faction.id(),
@@ -304,7 +291,7 @@ public class ProfileService {
 
         return new ClientProfileResponse(
                 profile.getId(),
-                profile.getUser().getId(),
+                profile.getUserId(),
                 profile.getName(),
                 profile.getDescription(),
                 faction == null ? null : faction.id(),
@@ -333,7 +320,7 @@ public class ProfileService {
 
         return new HunterProfileResponse(
                 profile.getId(),
-                profile.getUser().getId(),
+                profile.getUserId(),
                 profile.getCallsign(),
                 profile.getBio(),
                 faction == null ? null : faction.id(),
@@ -418,7 +405,7 @@ public class ProfileService {
 
         return new HunterProfileResponse(
                 profile.getId(),
-                profile.getUser().getId(),
+                profile.getUserId(),
                 profile.getCallsign(),
                 profile.getBio(),
                 faction == null ? null : faction.id(),

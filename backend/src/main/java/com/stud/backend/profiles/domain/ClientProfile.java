@@ -2,12 +2,8 @@ package com.stud.backend.profiles.domain;
 
 
 import com.stud.backend.common.persistence.BaseUuidEntity;
-import com.stud.backend.users.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,9 +20,9 @@ import java.util.UUID;
 public class ClientProfile extends BaseUuidEntity {
 
     // подумать над связями один ко многим и тд
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
+
+    @Column(name = "user_id", nullable = false, unique = true)
+    private UUID userId;
 
     @Column(name = "name", nullable = false, length = 120)
     private String name;

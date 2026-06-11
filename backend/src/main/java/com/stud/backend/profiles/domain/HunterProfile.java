@@ -3,14 +3,10 @@ package com.stud.backend.profiles.domain;
 
 import com.stud.backend.common.persistence.BaseUuidEntity;
 import com.stud.backend.profiles.domain.enums.AvailabilityStatus;
-import com.stud.backend.users.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,9 +25,9 @@ import java.util.UUID;
 public class HunterProfile extends BaseUuidEntity {
 
     // подумать над связями один ко многим и тд
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
+
+    @Column(name = "user_id", nullable = false, unique = true)
+    private UUID userId;
 
     @Column(name = "callsign", nullable = false, unique = true, length = 120)
     private String callsign;
