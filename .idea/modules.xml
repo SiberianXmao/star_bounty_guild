@@ -2,11 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/backend.main.iml" filepath="$PROJECT_DIR$/.idea/modules/backend.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/notification-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/notification-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/orders-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/orders-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/profiles-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/profiles-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/star_bounty_guild.iml" filepath="$PROJECT_DIR$/.idea/star_bounty_guild.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-service.main.iml" />
     </modules>
   </component>
 </project>

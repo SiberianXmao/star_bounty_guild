@@ -26,7 +26,7 @@ export default function AuthCallbackPage() {
         queryClient.invalidateQueries();
         navigate(returnTo || "/cabinet", { replace: true });
       } catch (loginError) {
-        setError(loginError.message || "Keycloak login failed");
+        setError(loginError.message || "Не удалось завершить вход");
       }
     }
 
@@ -53,7 +53,7 @@ export default function AuthCallbackPage() {
               <ShieldCheck size={26} aria-hidden="true" />
             </span>
             <h1>Проверяем пропуск</h1>
-            <p>Keycloak вернул код авторизации, терминал получает токены.</p>
+            <p>Завершаем вход и открываем кабинет.</p>
             <LoaderCircle className={styles.spinner} size={28} aria-hidden="true" />
           </>
         )}

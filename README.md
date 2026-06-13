@@ -63,13 +63,13 @@ notification-service  bounty_notifications
 keycloak              keycloak
 ```
 
-User-service source currently lives in `backend/`. Detach migrations:
+User-service source lives in `user-service/`. Detach migrations:
 
 ```text
-backend/src/main/resources/db/migration/V4__detach_dictionary_service.sql
-backend/src/main/resources/db/migration/V5__detach_profile_service.sql
-backend/src/main/resources/db/migration/V6__detach_order_service.sql
-backend/src/main/resources/db/migration/V101__detach_notification_service.sql
+user-service/src/main/resources/db/migration/V4__detach_dictionary_service.sql
+user-service/src/main/resources/db/migration/V5__detach_profile_service.sql
+user-service/src/main/resources/db/migration/V6__detach_order_service.sql
+user-service/src/main/resources/db/migration/V101__detach_notification_service.sql
 ```
 
 ## Интеграции
@@ -165,4 +165,6 @@ OIDC auth:    frontend -> Keycloak -> resource servers
 Internal API: X-Internal-Token guard
 ```
 
-Следующий крупный кандидат на чистку: физически переименовать папку `backend/` и Java package `com.stud.backend` в `user-service` naming.
+User-service cleanup завершен: исходники лежат в `user-service/`, Java package переименован в `com.stud.user`, application class - `UserServiceApplication`.
+
+Следующий крупный кандидат: подготовить k8s-манифесты для сервисов, БД, Kafka, Keycloak и gateway.

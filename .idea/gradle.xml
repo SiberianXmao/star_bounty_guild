@@ -4,14 +4,6 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
-        <option name="externalProjectPath" value="$PROJECT_DIR$/backend" />
-        <option name="modules">
-          <set>
-            <option value="$PROJECT_DIR$/backend" />
-          </set>
-        </option>
-      </GradleProjectSettings>
-      <GradleProjectSettings>
         <option name="externalProjectPath" value="$PROJECT_DIR$/dictionary-service" />
         <option name="modules">
           <set>
@@ -40,6 +32,14 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$/profiles-service" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/user-service" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/user-service" />
           </set>
         </option>
       </GradleProjectSettings>

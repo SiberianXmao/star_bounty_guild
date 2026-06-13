@@ -65,10 +65,10 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = useCallback(async (payload) => {
+  const login = useCallback(async (payload = {}) => {
     setAuthError("");
 
-    if (isKeycloakAuthEnabled()) {
+    if (isKeycloakAuthEnabled() && (!payload.email || !payload.password)) {
       await startKeycloakLogin({ mode: "login" });
       return null;
     }
@@ -84,10 +84,10 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const register = useCallback(async (payload) => {
+  const register = useCallback(async (payload = {}) => {
     setAuthError("");
 
-    if (isKeycloakAuthEnabled()) {
+    if (isKeycloakAuthEnabled() && (!payload.email || !payload.username || !payload.password)) {
       await startKeycloakLogin({ mode: "register" });
       return null;
     }

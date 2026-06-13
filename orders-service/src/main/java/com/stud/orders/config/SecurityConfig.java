@@ -56,38 +56,47 @@ public class SecurityConfig {
 
     @Bean
     Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
-        return jwt -> new JwtAuthenticationToken(
-                jwt,
-                extractRealmAuthorities(jwt),
-                jwt.getClaimAsString("email")
-        );
+        return new RealmRoleJwtAuthenticationConverter();
     }
 
-    private Collection<GrantedAuthority> extractRealmAuthorities(Jwt jwt) {
-        Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-        if (realmAccess == null) {
-            return List.of(new SimpleGrantedAuthority("CLIENT"));
+    private static final class RealmRoleJwtAuthenticationConverter
+            implements Converter<Jwt, AbstractAuthenticationToken> {
+
+        @Override
+        public AbstractAuthenticationToken convert(Jwt jwt) {
+            return new JwtAuthenticationToken(
+                    jwt,
+                    extractRealmAuthorities(jwt),
+                    jwt.getClaimAsString("email")
+            );
         }
 
-        Object roles = realmAccess.get("roles");
-        if (!(roles instanceof Collection<?> roleCollection)) {
-            return List.of(new SimpleGrantedAuthority("CLIENT"));
+        private Collection<GrantedAuthority> extractRealmAuthorities(Jwt jwt) {
+            Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+            if (realmAccess == null) {
+                return List.of(new SimpleGrantedAuthority("CLIENT"));
+            }
+
+            Object roles = realmAccess.get("roles");
+            if (!(roles instanceof Collection<?> roleCollection)) {
+                return List.of(new SimpleGrantedAuthority("CLIENT"));
+            }
+
+            List<GrantedAuthority> authorities = roleCollection.stream()
+                    .flatMap(this::toAuthority)
+                    .toList();
+
+            return authorities.isEmpty()
+                    ? List.of(new SimpleGrantedAuthority("CLIENT"))
+                    : authorities;
         }
 
-        List<GrantedAuthority> authorities = roleCollection.stream()
-                .flatMap(this::toAuthority)
-                .toList();
+        private Stream<GrantedAuthority> toAuthority(Object role) {
+            if (!(role instanceof String roleName) || !APP_ROLES.contains(roleName)) {
+                return Stream.empty();
+            }
 
-        return authorities.isEmpty()
-                ? List.of(new SimpleGrantedAuthority("CLIENT"))
-                : authorities;
-    }
-
-    private Stream<GrantedAuthority> toAuthority(Object role) {
-        if (!(role instanceof String roleName) || !APP_ROLES.contains(roleName)) {
-            return Stream.empty();
+            return Stream.of(new SimpleGrantedAuthority(roleName));
         }
-
-        return Stream.of(new SimpleGrantedAuthority(roleName));
     }
 }

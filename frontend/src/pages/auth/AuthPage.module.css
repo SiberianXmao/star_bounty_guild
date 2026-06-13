@@ -142,6 +142,17 @@
   gap: 0.85rem;
 }
 
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.submitButton {
+  width: 100%;
+  justify-content: center;
+}
+
 .providerPanel {
   display: grid;
   gap: 0.9rem;
@@ -240,6 +251,10 @@
 @media (max-width: 560px) {
   .authShell {
     padding: 1rem;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
   }
 
   .signalGrid span {

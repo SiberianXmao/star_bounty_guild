@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Badge, KeyRound, LogIn, Mail, ShieldCheck, UserPlus } from "lucide-react";
+import { Badge, KeyRound, LogIn, Mail, RadioTower, ShieldCheck, UserPlus } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import heroImage from "../../assets/guild-operations-deck.png";
 import styles from "./AuthPage.module.css";
@@ -17,11 +17,12 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { authError, isAuthenticated, isKeycloakAuth, login, register, user } = useAuth();
+  const { authError, isAuthenticated, login, register, user } = useAuth();
   const [form, setForm] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const mode = searchParams.get("mode") === "register" ? "register" : "login";
+  const isRegister = mode === "register";
 
   const setMode = (nextMode) => {
     setSearchParams({ mode: nextMode });
@@ -40,16 +41,16 @@ export default function AuthPage() {
     setIsSubmitting(true);
 
     try {
-      if (mode === "login") {
-        await login({
-          email: form.email,
-          password: form.password,
-        });
-      } else {
+      if (isRegister) {
         await register({
           email: form.email,
           username: form.username,
           displayName: form.displayName || null,
+          password: form.password,
+        });
+      } else {
+        await login({
+          email: form.email,
           password: form.password,
         });
       }
@@ -57,20 +58,6 @@ export default function AuthPage() {
       setForm(emptyForm);
       queryClient.invalidateQueries();
       navigate("/cabinet");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleKeycloakAuth = async () => {
-    setIsSubmitting(true);
-
-    try {
-      if (mode === "login") {
-        await login({});
-      } else {
-        await register({});
-      }
     } finally {
       setIsSubmitting(false);
     }
@@ -85,20 +72,20 @@ export default function AuthPage() {
         }}
       >
         <div className={styles.copy}>
-          <span className={styles.kicker}>Secure terminal</span>
-          <h1>Доступ к гильдии</h1>
-          <div className={styles.signalGrid}>
+          <span className={styles.kicker}>Канал гильдии</span>
+          <h1>Доступ к охотникам</h1>
+          <div className={styles.signalGrid} aria-label="Разделы кабинета">
             <span>
-              <b>{isKeycloakAuth ? "OIDC" : "JWT"}</b>
-              access
+              <b>Контракты</b>
+              доска
             </span>
             <span>
-              <b>RBAC</b>
-              roles
+              <b>Профиль</b>
+              кабинет
             </span>
             <span>
-              <b>PKCE</b>
-              flow
+              <b>Роли</b>
+              доступ
             </span>
           </div>
         </div>
@@ -119,27 +106,19 @@ export default function AuthPage() {
             <>
               <div className={styles.cardHeader}>
                 <span className={styles.statusIcon}>
-                  {isKeycloakAuth ? (
-                    <ShieldCheck size={24} aria-hidden="true" />
-                  ) : mode === "login" ? (
-                    <LogIn size={24} aria-hidden="true" />
-                  ) : (
-                    <UserPlus size={24} aria-hidden="true" />
-                  )}
+                  {isRegister ? <UserPlus size={24} aria-hidden="true" /> : <LogIn size={24} aria-hidden="true" />}
                 </span>
                 <div>
-                  <h2>{mode === "login" ? "Вход" : "Регистрация"}</h2>
+                  <h2>{isRegister ? "Регистрация" : "Вход"}</h2>
                   <p>
-                    {isKeycloakAuth
-                      ? "Keycloak проверит личность и вернет токены"
-                      : mode === "login"
-                        ? "Продолжить с аккаунтом"
-                        : "Создать аккаунт заказчика"}
+                    {isRegister
+                      ? "Создай профиль и открой личный кабинет гильдии."
+                      : "Вернись к контрактам, профилю и откликам."}
                   </p>
                 </div>
               </div>
 
-              <div className={styles.modeSwitch}>
+              <div className={styles.modeSwitch} aria-label="Режим авторизации">
                 <button
                   className={mode === "login" ? styles.active : ""}
                   type="button"
@@ -156,23 +135,14 @@ export default function AuthPage() {
                 </button>
               </div>
 
-              {isKeycloakAuth ? (
-                <KeycloakPanel
-                  authError={authError}
-                  isSubmitting={isSubmitting}
-                  mode={mode}
-                  onSubmit={handleKeycloakAuth}
-                />
-              ) : (
-                <LocalAuthForm
-                  authError={authError}
-                  form={form}
-                  isSubmitting={isSubmitting}
-                  mode={mode}
-                  onChange={updateField}
-                  onSubmit={handleSubmit}
-                />
-              )}
+              <AuthForm
+                authError={authError}
+                form={form}
+                isRegister={isRegister}
+                isSubmitting={isSubmitting}
+                onChange={updateField}
+                onSubmit={handleSubmit}
+              />
             </>
           )}
         </article>
@@ -181,36 +151,11 @@ export default function AuthPage() {
   );
 }
 
-function KeycloakPanel({ authError, isSubmitting, mode, onSubmit }) {
-  return (
-    <div className={styles.providerPanel}>
-      <div className={styles.providerMeta}>
-        <span>Identity Provider</span>
-        <strong>Keycloak / bounty-guild</strong>
-        <p>
-          После входа frontend получит access token, а user-service сверит роли через
-          OAuth2 Resource Server.
-        </p>
-      </div>
-
-      {authError ? <div className="notice error">{authError}</div> : null}
-
-      <button className="button" type="button" onClick={onSubmit} disabled={isSubmitting}>
-        {mode === "login" ? (
-          <LogIn size={18} aria-hidden="true" />
-        ) : (
-          <UserPlus size={18} aria-hidden="true" />
-        )}
-        {mode === "login" ? "Войти через Keycloak" : "Создать аккаунт в Keycloak"}
-      </button>
-    </div>
-  );
-}
-
-function LocalAuthForm({ authError, form, isSubmitting, mode, onChange, onSubmit }) {
+function AuthForm({ authError, form, isRegister, isSubmitting, onChange, onSubmit }) {
   return (
     <form className={styles.form} onSubmit={onSubmit}>
       <AuthField
+        autoComplete="email"
         icon={Mail}
         label="Email"
         name="email"
@@ -220,30 +165,33 @@ function LocalAuthForm({ authError, form, isSubmitting, mode, onChange, onSubmit
         value={form.email}
       />
 
-      {mode === "register" ? (
-        <>
+      {isRegister ? (
+        <div className={styles.formGrid}>
           <AuthField
+            autoComplete="username"
             icon={Badge}
-            label="Username"
+            label="Позывной"
             minLength={3}
             name="username"
             onChange={onChange}
-            placeholder="callsign"
+            placeholder="outer-rim"
             value={form.username}
           />
           <AuthField
-            icon={Badge}
-            label="Имя в терминале"
+            autoComplete="name"
+            icon={RadioTower}
+            label="Имя в гильдии"
             name="displayName"
             onChange={onChange}
             placeholder="Outer Rim Operator"
             required={false}
             value={form.displayName}
           />
-        </>
+        </div>
       ) : null}
 
       <AuthField
+        autoComplete={isRegister ? "new-password" : "current-password"}
         icon={KeyRound}
         label="Пароль"
         minLength={8}
@@ -256,13 +204,9 @@ function LocalAuthForm({ authError, form, isSubmitting, mode, onChange, onSubmit
 
       {authError ? <div className="notice error">{authError}</div> : null}
 
-      <button className="button" type="submit" disabled={isSubmitting}>
-        {mode === "login" ? (
-          <LogIn size={18} aria-hidden="true" />
-        ) : (
-          <UserPlus size={18} aria-hidden="true" />
-        )}
-        {mode === "login" ? "Войти" : "Создать аккаунт"}
+      <button className={`button ${styles.submitButton}`} type="submit" disabled={isSubmitting}>
+        {isRegister ? <UserPlus size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
+        {isSubmitting ? "Проверка..." : isRegister ? "Создать аккаунт" : "Войти"}
       </button>
     </form>
   );
