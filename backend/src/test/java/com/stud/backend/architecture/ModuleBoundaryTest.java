@@ -14,70 +14,41 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 class ModuleBoundaryTest {
 
     @ArchTest
-    static final ArchRule applications_should_not_depend_on_module_internals =
-            noClasses()
-                    .that().resideInAPackage("..applications..")
-                    .should().dependOnClassesThat().resideInAnyPackage(
-                            "..orders.domain..",
-                            "..orders.repository..",
-                            "..profiles.domain..",
-                            "..profiles.repository..",
-                            "..users.domain..",
-                            "..users.repository..",
-                            "..dictionary.domain..",
-                            "..dictionary.repository.."
-                    );
-
-    @ArchTest
-    static final ArchRule orders_should_not_depend_on_other_module_internals =
-            noClasses()
-                    .that().resideInAPackage("..orders..")
-                    .should().dependOnClassesThat().resideInAnyPackage(
-                            "..applications.domain..",
-                            "..applications.repository..",
-                            "..profiles.domain..",
-                            "..profiles.repository..",
-                            "..users.domain..",
-                            "..users.repository..",
-                            "..dictionary.domain..",
-                            "..dictionary.repository.."
-                    );
-
-    @ArchTest
     static final ArchRule api_packages_should_not_depend_on_own_domain_or_repository =
             noClasses()
                     .that().resideInAnyPackage(
-                            "..orders.api..",
                             "..profiles.api..",
                             "..users.api..",
-                            "..dictionary.api..",
-                            "..applications.api.."
+                            "..dictionary.api.."
                     )
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            "..orders.domain..",
-                            "..orders.repository..",
                             "..profiles.domain..",
                             "..profiles.repository..",
+                            "..profiles.service..",
+                            "..profiles.web..",
                             "..users.domain..",
                             "..users.repository..",
+                            "..users.service..",
+                            "..users.web..",
                             "..dictionary.domain..",
                             "..dictionary.repository..",
-                            "..applications.domain..",
-                            "..applications.repository.."
+                            "..dictionary.service..",
+                            "..dictionary.web.."
                     );
+
     @ArchTest
     static final ArchRule profiles_should_not_depend_on_other_module_internals =
             noClasses()
                     .that().resideInAPackage("..profiles..")
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            "..orders.domain..",
-                            "..orders.repository..",
-                            "..applications.domain..",
-                            "..applications.repository..",
                             "..users.domain..",
                             "..users.repository..",
+                            "..users.service..",
+                            "..users.web..",
                             "..dictionary.domain..",
-                            "..dictionary.repository.."
+                            "..dictionary.repository..",
+                            "..dictionary.service..",
+                            "..dictionary.web.."
                     );
 
     @ArchTest
@@ -85,8 +56,6 @@ class ModuleBoundaryTest {
             noClasses()
                     .that().resideInAPackage("..common..")
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            "..applications..",
-                            "..orders..",
                             "..profiles..",
                             "..users..",
                             "..dictionary..",
@@ -98,8 +67,6 @@ class ModuleBoundaryTest {
             noClasses()
                     .that().resideInAPackage("..users..")
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            "..applications..",
-                            "..orders..",
                             "..profiles..",
                             "..dictionary..",
                             "..auth.."
@@ -110,8 +77,6 @@ class ModuleBoundaryTest {
             noClasses()
                     .that().resideInAPackage("..dictionary..")
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            "..applications..",
-                            "..orders..",
                             "..profiles..",
                             "..users..",
                             "..auth.."
@@ -122,8 +87,6 @@ class ModuleBoundaryTest {
             noClasses()
                     .that().resideInAPackage("..auth..")
                     .should().dependOnClassesThat().resideInAnyPackage(
-                            "..applications..",
-                            "..orders..",
                             "..profiles..",
                             "..dictionary.."
                     );

@@ -44,6 +44,6 @@ public class AuthController {
 
     @GetMapping("/me")
     public UserSummary me(Authentication authentication) {
-        return authService.me(authentication.getName());
+        return authService.me(authentication);
     }
 }

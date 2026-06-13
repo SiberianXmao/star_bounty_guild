@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { AUTH_PROVIDER, isKeycloakAuthEnabled } from "../config/auth.js";
 import { authApi } from "../services/bountyApi.js";
 import {
   clearStoredSession,
@@ -6,6 +7,11 @@ import {
   getStoredSession,
   saveStoredSession,
 } from "../services/apiClient.js";
+import {
+  buildKeycloakLogoutUrl,
+  completeKeycloakLogin,
+  startKeycloakLogin,
+} from "../services/oidcClient.js";
 
 const AuthContext = createContext(null);
 
@@ -62,6 +68,11 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (payload) => {
     setAuthError("");
 
+    if (isKeycloakAuthEnabled()) {
+      await startKeycloakLogin({ mode: "login" });
+      return null;
+    }
+
     try {
       const nextSession = await authApi.login(payload);
       setSession(nextSession);
@@ -76,6 +87,11 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (payload) => {
     setAuthError("");
 
+    if (isKeycloakAuthEnabled()) {
+      await startKeycloakLogin({ mode: "register" });
+      return null;
+    }
+
     try {
       const nextSession = await authApi.register(payload);
       setSession(nextSession);
@@ -87,30 +103,72 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    const currentSession = getStoredSession();
+  const completeExternalLogin = useCallback(async (searchParams) => {
     setAuthError("");
 
     try {
-      await authApi.logout(currentSession?.refreshToken);
+      const { returnTo, session: tokenSession } = await completeKeycloakLogin(searchParams);
+      saveStoredSession(tokenSession);
+
+      const user = await authApi.me();
+      const nextSession = {
+        ...getStoredSession(),
+        user,
+      };
+
+      saveStoredSession(nextSession);
+      setSession(nextSession);
+
+      return {
+        returnTo,
+        session: nextSession,
+      };
+    } catch (error) {
+      const message = getApiErrorMessage(error);
+      setAuthError(message);
+      clearStoredSession();
+      throw error;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    const currentSession = getStoredSession();
+    const keycloakLogoutUrl =
+      currentSession?.authProvider === "keycloak"
+        ? buildKeycloakLogoutUrl(currentSession)
+        : null;
+
+    setAuthError("");
+
+    try {
+      if (!keycloakLogoutUrl && currentSession?.refreshToken) {
+        await authApi.logout(currentSession?.refreshToken);
+      }
     } finally {
       clearStoredSession();
       setSession(null);
+
+      if (keycloakLogoutUrl) {
+        window.location.assign(keycloakLogoutUrl);
+      }
     }
   }, []);
 
   const value = useMemo(
     () => ({
       authError,
+      authProvider: AUTH_PROVIDER,
+      completeExternalLogin,
       isBooting,
       isAuthenticated: Boolean(session?.accessToken),
+      isKeycloakAuth: isKeycloakAuthEnabled(),
       login,
       logout,
       register,
       session,
       user: session?.user ?? null,
     }),
-    [authError, isBooting, login, logout, register, session],
+    [authError, completeExternalLogin, isBooting, login, logout, register, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

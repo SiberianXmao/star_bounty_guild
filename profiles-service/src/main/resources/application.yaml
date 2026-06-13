@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: profiles-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5436/bounty_profiles
+    username: postgres
+    password: postgres
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: bounty
+        format_sql: true
+
+  flyway:
+    enabled: true
+    schemas: bounty
+    default-schema: bounty
+    baseline-on-migrate: true
+    locations:
+      - classpath:db/migration
+      - classpath:db/dev-migration
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8085/realms/bounty-guild
+          jwk-set-uri: http://localhost:8085/realms/bounty-guild/protocol/openid-connect/certs
+
+server:
+  port: 8083
+
+app:
+  internal-auth:
+    header-name: X-Internal-Token
+    token: ${APP_INTERNAL_AUTH_TOKEN:dev-internal-token}
+
+  services:
+    users:
+      base-url: http://localhost:8080
+    dictionary:
+      base-url: http://localhost:8081
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

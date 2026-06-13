@@ -1,40 +1,286 @@
 services:
-  postgres:
+  user-postgres:
     image: postgres:16-alpine
-    container_name: bounty-postgres
+    container_name: bounty-user-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: bounty_guild
+      POSTGRES_DB: bounty_users
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       TZ: Europe/Moscow
     ports:
       - "5432:5432"
     volumes:
-      - bounty_postgres_data:/var/lib/postgresql/data
+      - bounty_user_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d bounty_guild"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bounty_users"]
       interval: 5s
       timeout: 3s
       retries: 20
 
-  backend:
+  dictionary-postgres:
+    image: postgres:16-alpine
+    container_name: bounty-dictionary-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bounty_dictionary
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Europe/Moscow
+    ports:
+      - "5433:5432"
+    volumes:
+      - bounty_dictionary_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bounty_dictionary"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  notification-postgres:
+    image: postgres:16-alpine
+    container_name: bounty-notification-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bounty_notifications
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Europe/Moscow
+    ports:
+      - "5434:5432"
+    volumes:
+      - bounty_notification_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bounty_notifications"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  profiles-postgres:
+    image: postgres:16-alpine
+    container_name: bounty-profiles-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bounty_profiles
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Europe/Moscow
+    ports:
+      - "5436:5432"
+    volumes:
+      - bounty_profiles_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bounty_profiles"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  orders-postgres:
+    image: postgres:16-alpine
+    container_name: bounty-orders-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bounty_orders
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Europe/Moscow
+    ports:
+      - "5437:5432"
+    volumes:
+      - bounty_orders_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bounty_orders"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  keycloak-postgres:
+    image: postgres:16-alpine
+    container_name: bounty-keycloak-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+      TZ: Europe/Moscow
+    ports:
+      - "5435:5432"
+    volumes:
+      - bounty_keycloak_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  dictionary-service:
     build:
-      context: ./backend
-    container_name: bounty-backend
+      context: ./dictionary-service
+    container_name: bounty-dictionary-service
     restart: unless-stopped
     depends_on:
-      postgres:
+      dictionary-postgres:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bounty_guild
+      SPRING_DATASOURCE_URL: jdbc:postgresql://dictionary-postgres:5432/bounty_dictionary
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_JPA_OPEN_IN_VIEW: "false"
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-dev-internal-token}
+    ports:
+      - "8081:8081"
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: bounty-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    ports:
+      - "9094:9094"
+    volumes:
+      - bounty_kafka_data:/bitnami/kafka
+
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: bounty-notification-service
+    restart: unless-stopped
+    depends_on:
+      notification-postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification-postgres:5432/bounty_notifications
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_OPEN_IN_VIEW: "false"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      APP_KAFKA_TOPICS_APPLICATION_ACCEPTED: bounty.applications.application-accepted.v1
+    ports:
+      - "8082:8082"
+
+  profiles-service:
+    build:
+      context: ./profiles-service
+    container_name: bounty-profiles-service
+    restart: unless-stopped
+    depends_on:
+      profiles-postgres:
+        condition: service_healthy
+      dictionary-service:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://profiles-postgres:5432/bounty_profiles
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_OPEN_IN_VIEW: "false"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
+      APP_SERVICES_USERS_BASE_URL: http://user-service:8080
+      APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-dev-internal-token}
+    ports:
+      - "8083:8083"
+
+  orders-service:
+    build:
+      context: ./orders-service
+    container_name: bounty-orders-service
+    restart: unless-stopped
+    depends_on:
+      orders-postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      dictionary-service:
+        condition: service_started
+      profiles-service:
+        condition: service_started
+      kafka:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://orders-postgres:5432/bounty_orders
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_OPEN_IN_VIEW: "false"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
+      APP_SERVICES_USERS_BASE_URL: http://user-service:8080
+      APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
+      APP_SERVICES_PROFILES_BASE_URL: http://profiles-service:8083
+      APP_KAFKA_TOPICS_APPLICATION_ACCEPTED: bounty.applications.application-accepted.v1
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-dev-internal-token}
+    ports:
+      - "8084:8084"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: bounty-keycloak
+    restart: unless-stopped
+    depends_on:
+      keycloak-postgres:
+        condition: service_healthy
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+    command:
+      - start-dev
+      - --import-realm
+    ports:
+      - "8085:8080"
+    volumes:
+      - ./keycloak/realm:/opt/keycloak/data/import:ro
+
+  user-service:
+    build:
+      context: ./backend
+    container_name: bounty-user-service
+    restart: unless-stopped
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+      dictionary-service:
+        condition: service_started
+      profiles-service:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,keycloak
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-postgres:5432/bounty_users
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_OPEN_IN_VIEW: "false"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
+      APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
+      APP_SERVICES_PROFILES_BASE_URL: http://profiles-service:8083
+      APP_SECURITY_PROVIDER: keycloak
       APP_SECURITY_JWT_SECRET: c3Rhci1ib3VudHktZ3VpbGQtZGV2LXNlY3JldC0zMi1ieXRlcy1taW4=
       APP_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: 30
       APP_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_DAYS: 14
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-dev-internal-token}
     expose:
       - "8080"
 
@@ -43,10 +289,14 @@ services:
       context: ./frontend
       args:
         VITE_API_BASE_URL: /api/v1
+        VITE_AUTH_PROVIDER: keycloak
+        VITE_KEYCLOAK_URL: http://localhost:8085
+        VITE_KEYCLOAK_REALM: bounty-guild
+        VITE_KEYCLOAK_CLIENT_ID: bounty-frontend
     container_name: bounty-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      - user-service
     expose:
       - "80"
 
@@ -57,9 +307,19 @@ services:
     restart: unless-stopped
     depends_on:
       - frontend
-      - backend
+      - user-service
+      - dictionary-service
+      - profiles-service
+      - orders-service
+      - notification-service
     ports:
       - "3000:80"
 
 volumes:
-  bounty_postgres_data:
+  bounty_user_postgres_data:
+  bounty_dictionary_postgres_data:
+  bounty_notification_postgres_data:
+  bounty_profiles_postgres_data:
+  bounty_orders_postgres_data:
+  bounty_keycloak_postgres_data:
+  bounty_kafka_data:

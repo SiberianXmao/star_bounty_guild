@@ -18,14 +18,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query(value = """
             select
-                exists(select 1 from bounty.client_profiles where user_id = :userId)
-                or exists(select 1 from bounty.hunter_profiles where user_id = :userId)
-                or exists(select 1 from bounty.reviews where author_id = :userId or target_user_id = :userId)
+                exists(select 1 from bounty.reviews where author_id = :userId or target_user_id = :userId)
                 or exists(select 1 from bounty.complaints where author_id = :userId or target_user_id = :userId)
                 or exists(select 1 from bounty.chat_messages where sender_id = :userId)
                 or exists(select 1 from bounty.chat_participants where user_id = :userId)
                 or exists(select 1 from bounty.favorites where user_id = :userId or target_user_id = :userId)
-                or exists(select 1 from bounty.notifications where user_id = :userId)
             """, nativeQuery = true)
     boolean hasPermanentDeleteBlockers(@Param("userId") UUID userId);
 }

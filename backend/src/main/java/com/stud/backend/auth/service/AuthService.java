@@ -13,15 +13,24 @@ import com.stud.backend.users.repository.UserRepository;
 import com.stud.backend.users.repository.UserRoleRepository;
 import com.stud.backend.auth.web.dto.AuthDtos.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -114,11 +123,171 @@ public class AuthService {
         refreshTokenService.revoke(request.refreshToken());
     }
 
+    @Transactional
+    public UserSummary me(Authentication authentication) {
+        if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+            return meFromKeycloak(jwtAuthentication);
+        }
+
+        return me(authentication.getName());
+    }
+
     public UserSummary me(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 
         return toUserSummary(user, getRoles(user));
+    }
+
+    private UserSummary meFromKeycloak(JwtAuthenticationToken authentication) {
+        Jwt jwt = authentication.getToken();
+        String email = requiredClaim(jwt, "email").trim().toLowerCase();
+        Set<RoleName> roles = extractRoleNames(authentication.getAuthorities());
+
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseGet(() -> createExternalUser(jwt, email));
+
+        validateActiveUser(user);
+        updateExternalUser(user, jwt);
+        Set<RoleName> syncedRoles = syncExternalRoles(user, roles);
+
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+
+        return toUserSummary(user, syncedRoles);
+    }
+
+    private User createExternalUser(Jwt jwt, String email) {
+        User user = new User();
+        user.setEmail(email);
+        user.setUsername(resolveUniqueUsername(jwt, email));
+        user.setDisplayName(resolveDisplayName(jwt, email));
+        user.setPasswordHash("{external}keycloak");
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerified(Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified")));
+
+        return userRepository.save(user);
+    }
+
+    private void updateExternalUser(User user, Jwt jwt) {
+        String displayName = resolveDisplayName(jwt, user.getEmail());
+
+        if (user.getDisplayName() == null || user.getDisplayName().isBlank()) {
+            user.setDisplayName(displayName);
+        }
+
+        user.setEmailVerified(Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified")));
+    }
+
+    private Set<RoleName> syncExternalRoles(User user, Set<RoleName> desiredRoles) {
+        Set<RoleName> rolesToApply = desiredRoles.isEmpty() ? Set.of(RoleName.CLIENT) : desiredRoles;
+        Set<RoleName> currentRoles = getRoles(user);
+
+        for (RoleName roleName : rolesToApply) {
+            if (!currentRoles.contains(roleName)) {
+                Role role = roleRepository.findByName(roleName)
+                        .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
+                userRoleRepository.save(new UserRole(user, role));
+            }
+        }
+
+        userRoleRepository.findAllByUserId(user.getId())
+                .stream()
+                .filter(userRole -> !rolesToApply.contains(userRole.getRole().getName()))
+                .forEach(userRoleRepository::delete);
+
+        return rolesToApply;
+    }
+
+    private Set<RoleName> extractRoleNames(Collection<? extends GrantedAuthority> authorities) {
+        Set<RoleName> roles = authorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .map(this::toRoleName)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+
+        return roles.isEmpty() ? Set.of(RoleName.CLIENT) : roles;
+    }
+
+    private Optional<RoleName> toRoleName(String authority) {
+        String roleName = authority.startsWith("ROLE_") ? authority.substring(5) : authority;
+
+        try {
+            return Optional.of(RoleName.valueOf(roleName));
+        } catch (IllegalArgumentException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private String requiredClaim(Jwt jwt, String claimName) {
+        String value = jwt.getClaimAsString(claimName);
+
+        if (value == null || value.isBlank()) {
+            throw new ResourceNotFoundException("Keycloak token has no required claim: " + claimName);
+        }
+
+        return value;
+    }
+
+    private String resolveDisplayName(Jwt jwt, String email) {
+        String name = jwt.getClaimAsString("name");
+
+        if (name != null && !name.isBlank()) {
+            return name.trim();
+        }
+
+        String givenName = jwt.getClaimAsString("given_name");
+        String familyName = jwt.getClaimAsString("family_name");
+        String fullName = Stream.of(givenName, familyName)
+                .filter(part -> part != null && !part.isBlank())
+                .map(String::trim)
+                .collect(Collectors.joining(" "));
+
+        return fullName.isBlank() ? getEmailLocalPart(email) : fullName;
+    }
+
+    private String resolveUniqueUsername(Jwt jwt, String email) {
+        String candidate = jwt.getClaimAsString("preferred_username");
+
+        if (candidate == null || candidate.isBlank()) {
+            candidate = getEmailLocalPart(email);
+        }
+
+        String username = normalizeUsername(candidate);
+
+        if (!userRepository.existsByUsernameIgnoreCase(username)) {
+            return username;
+        }
+
+        String subject = Optional.ofNullable(jwt.getSubject()).orElse(UUID.randomUUID().toString());
+        String compactSubject = subject.replace("-", "");
+        String suffix = "-" + compactSubject.substring(0, Math.min(compactSubject.length(), 8));
+        int maxBaseLength = Math.max(1, 80 - suffix.length());
+        String usernameWithSuffix = username.substring(0, Math.min(username.length(), maxBaseLength)) + suffix;
+
+        if (!userRepository.existsByUsernameIgnoreCase(usernameWithSuffix)) {
+            return usernameWithSuffix;
+        }
+
+        return UUID.randomUUID().toString();
+    }
+
+    private String normalizeUsername(String value) {
+        String normalized = value.trim()
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9_.@-]", "-")
+                .replaceAll("-{2,}", "-");
+
+        if (normalized.isBlank()) {
+            return UUID.randomUUID().toString();
+        }
+
+        return normalized.substring(0, Math.min(normalized.length(), 80));
+    }
+
+    private String getEmailLocalPart(String email) {
+        int atIndex = email.indexOf('@');
+        return atIndex > 0 ? email.substring(0, atIndex) : email;
     }
 
     private void validateActiveUser(User user) {

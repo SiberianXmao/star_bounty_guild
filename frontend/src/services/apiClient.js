@@ -1,4 +1,5 @@
 import axios from "axios";
+import { refreshKeycloakSession } from "./oidcClient.js";
 
 const AUTH_STORAGE_KEY = "bountyGuild.session";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
@@ -106,15 +107,21 @@ apiClient.interceptors.response.use(
     originalRequest._retry = true;
 
     try {
-      refreshRequest ??= publicClient
-        .post("/auth/refresh", { refreshToken: session.refreshToken })
-        .then((response) => response.data)
-        .finally(() => {
-          refreshRequest = null;
-        });
+      refreshRequest ??= (
+        session.authProvider === "keycloak"
+          ? refreshKeycloakSession(session.refreshToken)
+          : publicClient
+              .post("/auth/refresh", { refreshToken: session.refreshToken })
+              .then((response) => response.data)
+      ).finally(() => {
+        refreshRequest = null;
+      });
 
       const refreshedSession = await refreshRequest;
-      saveStoredSession(refreshedSession);
+      saveStoredSession({
+        ...session,
+        ...refreshedSession,
+      });
 
       originalRequest.headers.Authorization = `Bearer ${refreshedSession.accessToken}`;
       return apiClient(originalRequest);

@@ -1,83 +1,168 @@
-## Run
+# Bounty Guild
+
+Учебный fullstack-проект в стиле гильдии охотников за наградой.
+
+## Запуск
 
 ```bash
 docker compose up -d --build
 ```
 
-- App via edge gateway: http://localhost:3000
-- Swagger UI via gateway: http://localhost:3000/swagger-ui/index.html
-- OpenAPI JSON via gateway: http://localhost:3000/v3/api-docs
+Основные адреса:
 
-## Database
+- приложение через edge gateway: http://localhost:3000
+- user-service Swagger через gateway: http://localhost:3000/swagger-ui/index.html
+- dictionary-service Swagger: http://localhost:8081/swagger-ui.html
+- notification-service Swagger: http://localhost:8082/swagger-ui.html
+- profiles-service Swagger: http://localhost:8083/swagger-ui.html
+- orders-service Swagger: http://localhost:8084/swagger-ui.html
+- Keycloak admin console: http://localhost:8085
 
-В проекте используется PostgreSQL как основная реляционная база данных.
-
-База данных спроектирована для учебного fullstack-приложения **Bounty Guild** — платформы в стилистике космической гильдии наёмников. Она хранит данные пользователей, профили заказчиков и охотников, заказы, отклики, персональные предложения, чаты, уведомления, отзывы, жалобы и справочники игрового мира.
-
-Структура базы данных построена под архитектуру модульного монолита. Таблицы разделены по смысловым областям приложения: аккаунты, профили, заказы, коммуникация, репутация, справочники и административные функции. Такой подход помогает развивать проект постепенно и оставляет возможность в будущем выделить отдельные модули в самостоятельные сервисы.
-
-Для управления структурой базы используется **Flyway**. Все изменения схемы хранятся в виде версионированных миграций внутри проекта. Благодаря этому базу можно пересоздать с нуля без ручного создания таблиц через pgAdmin.
-
-Основная база данных называется `bounty_guild`, рабочая схема — `bounty`.
-
-### Main Tables
-
-| Таблица | Назначение |
-|---|---|
-| `users` | Хранит технические аккаунты пользователей: данные для входа, статус аккаунта, отображаемое имя и базовую информацию. |
-| `roles` | Справочник ролей приложения: заказчик, охотник, администратор, модератор. |
-| `user_roles` | Связывает пользователей с ролями. Один пользователь может иметь несколько ролей одновременно. |
-| `client_profiles` | Хранит профили заказчиков: название или имя, описание, рейтинг, надёжность и связанную игровую информацию. |
-| `hunter_profiles` | Хранит профили охотников: позывной, биографию, доступность, минимальную награду, рейтинг и статистику выполнения заказов. |
-| `skills` | Справочник навыков охотников. Например: пилотирование, техника, слежка, выживание. |
-| `hunter_skills` | Связывает охотников с навыками и хранит уровень владения каждым навыком. |
-| `factions` | Справочник фракций игрового мира. Фракции могут быть связаны с профилями, секторами и планетами. |
-| `sectors` | Справочник космических секторов. Используется для атмосферы проекта и фильтрации заказов. |
-| `planets` | Справочник планет. Планеты используются в профилях, заказах и фильтрах. |
-| `order_categories` | Справочник категорий заказов: разведка, доставка, сопровождение, поиск артефактов и другие типы миссий. |
-| `currencies` | Справочник валют, в которых может указываться награда за заказ. |
-| `orders` | Основная таблица заказов. Хранит контракты, созданные заказчиками: описание, награду, статус, риск, срочность, планету, сектор и назначенного исполнителя. |
-| `order_applications` | Хранит отклики охотников на открытые заказы. |
-| `order_offers` | Хранит персональные предложения, которые заказчик отправляет конкретному охотнику. |
-| `chats` | Хранит чаты. В системе есть чаты по заказу и личные чаты между пользователями. |
-| `chat_participants` | Хранит участников чатов и информацию о прочтении сообщений. |
-| `chat_messages` | Хранит сообщения в чатах, включая пользовательские и системные сообщения. |
-| `reviews` | Хранит отзывы и оценки после выполнения заказов. |
-| `favorites` | Хранит избранных пользователей: заказчиков или охотников. |
-| `notifications` | Хранит уведомления пользователей: новые отклики, сообщения, предложения, изменения статусов заказов и другие события. |
-| `complaints` | Хранит жалобы пользователей для последующей обработки администрацией или модерацией. |
-| `refresh_tokens` | Хранит refresh-токены пользователей для системы авторизации. |
-
-### Service Tables
-
-| Таблица | Назначение |
-|---|---|
-| `flyway_schema_history` | Служебная таблица Flyway. Хранит историю применённых миграций базы данных. Не является доменной таблицей приложения. |
-
-### Migration Structure
-
-Основные миграции базы данных хранятся в директории:
+## Сервисы
 
 ```text
-src/main/resources/db/migration
+gateway               edge reverse proxy
+frontend              React frontend
+user-service          users/auth, roles, user/admin API
+dictionary-service    микросервис справочников
+profiles-service      микросервис профилей
+orders-service        микросервис заказов, заявок и order outbox
+notification-service  микросервис уведомлений
+kafka                 брокер доменных событий
+keycloak              identity provider
+user-postgres         база user-service
+dictionary-postgres   база dictionary-service
+profiles-postgres     база profiles-service
+orders-postgres       база orders-service
+notification-postgres база notification-service
+keycloak-postgres     база Keycloak
 ```
 
-Dev-миграции с тестовыми данными для локальной разработки хранятся отдельно:
+## Gateway Routes
 
-src/main/resources/db/dev-migration
-
-Пример структуры:
+```text
+/api/v1/dictionary/**      -> dictionary-service
+/api/v1/profiles/**        -> profiles-service
+/api/v1/orders/**          -> orders-service
+/api/v1/applications/**    -> orders-service
+/api/v1/notifications/**   -> notification-service
+/api/**                    -> user-service
+/swagger-ui/**             -> user-service
+/v3/api-docs/**            -> user-service
+/                         -> frontend
 ```
-src/main/resources/
-├── db/
-│   ├── migration/
-│   │   ├── V1__init_schema.sql
-│   │   └── V2__seed_dictionaries.sql
-│   └── dev-migration/
-│       └── V100__seed_dev_data.sql
+
+## Service Databases
+
+```text
+user-service          bounty_users
+dictionary-service    bounty_dictionary
+profiles-service      bounty_profiles
+orders-service        bounty_orders
+notification-service  bounty_notifications
+keycloak              keycloak
 ```
-V1__init_schema.sql создаёт структуру базы данных.
 
-V2__seed_dictionaries.sql добавляет базовые справочники, необходимые для работы приложения.
+User-service source currently lives in `backend/`. Detach migrations:
 
-V100__seed_dev_data.sql добавляет тестовые данные только для локальной разработки при запуске с dev-профилем.
+```text
+backend/src/main/resources/db/migration/V4__detach_dictionary_service.sql
+backend/src/main/resources/db/migration/V5__detach_profile_service.sql
+backend/src/main/resources/db/migration/V6__detach_order_service.sql
+backend/src/main/resources/db/migration/V101__detach_notification_service.sql
+```
+
+## Интеграции
+
+Services -> dictionary-service:
+
+```text
+DictionaryServiceFeignClient
+```
+
+Orders-service -> profiles-service:
+
+```text
+ProfileServiceFeignClient
+```
+
+Profiles-service/orders-service -> user-service:
+
+```text
+GET  /internal/v1/users/by-email?email={email}
+POST /internal/v1/users/{userId}/roles
+```
+
+Orders-service -> Kafka -> notification-service:
+
+```text
+applications.application-accepted.v1
+bounty.applications.application-accepted.v1
+```
+
+## Internal Auth
+
+Internal endpoints are protected by a shared service token:
+
+```text
+Header: X-Internal-Token
+Env:    APP_INTERNAL_AUTH_TOKEN
+```
+
+Docker Compose uses `dev-internal-token` by default. For a different local token:
+
+```bash
+APP_INTERNAL_AUTH_TOKEN=your-dev-token docker compose up -d --build
+```
+
+Feign clients add the header automatically through `RequestInterceptor`.
+
+## Keycloak
+
+Docker Compose запускает frontend и resource servers в Keycloak-режиме.
+
+```text
+admin console:   http://localhost:8085
+admin user:      admin
+admin password:  admin
+realm:           bounty-guild
+frontend client: bounty-frontend
+demo password:   password
+```
+
+Демо-пользователи:
+
+```text
+admin@bounty.local
+client.hutt@bounty.local
+client.rebel@bounty.local
+hunter.raven@bounty.local
+hunter.rho@bounty.local
+hunter.specter@bounty.local
+```
+
+Frontend использует Authorization Code + PKCE.
+User-service, profiles-service и orders-service работают как OAuth2 Resource Server.
+
+Если realm уже был импортирован в существующую Keycloak-базу, изменения в `keycloak/realm/bounty-guild-realm.json` не применятся автоматически. Для чистого dev-импорта нужно пересоздать volume `bounty_keycloak_postgres_data`.
+
+## Статус Микросервисов
+
+Подробная карта текущего состояния:
+
+```text
+docs/microservice-readiness-status.md
+```
+
+Сейчас уже есть:
+
+```text
+HTTP sync:    services -> dictionary-service через Feign
+HTTP sync:    orders-service -> profiles-service через Feign
+HTTP sync:    services -> user-service через Feign
+Async event:  orders-service -> Kafka -> notification-service
+OIDC auth:    frontend -> Keycloak -> resource servers
+Internal API: X-Internal-Token guard
+```
+
+Следующий крупный кандидат на чистку: физически переименовать папку `backend/` и Java package `com.stud.backend` в `user-service` naming.
