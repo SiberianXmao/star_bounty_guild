@@ -1,170 +1,93 @@
 # Bounty Guild
 
-Учебный fullstack-проект в стиле гильдии охотников за наградой.
+Учебный fullstack-проект по мотивам Star Wars. Приложение представляет гильдию охотников за наградой: заказчики публикуют контракты, охотники ведут профили и подают заявки, а администраторы управляют пользователями и справочниками.
+
+Проект построен как набор отдельных Spring Boot сервисов с собственными PostgreSQL базами. Синхронное взаимодействие выполняется через HTTP/Feign, события передаются через Kafka.
+
+## Возможности
+
+- регистрация и авторизация пользователей;
+- роли `ADMIN`, `MODERATOR`, `CLIENT`, `HUNTER`;
+- профили заказчиков и охотников;
+- доска контрактов с фильтрами;
+- заявки охотников и управление статусами заказов;
+- справочники планет, секторов, фракций, валют и навыков;
+- административная и модераторская панели;
+- уведомления о событиях заказов.
+
+## Архитектура
+
+| Компонент | Назначение |
+| --- | --- |
+| `gateway` | Единая точка входа и маршрутизация запросов |
+| `frontend` | React-интерфейс приложения |
+| `user-service` | Пользователи, авторизация, роли и модерация |
+| `dictionary-service` | Планеты, секторы, фракции, валюты, категории и навыки |
+| `profiles-service` | Профили заказчиков и охотников |
+| `orders-service` | Заказы, заявки, предложения и outbox |
+| `notification-service` | Уведомления и Kafka consumer |
+| `keycloak` | Identity provider и realm roles |
+| `kafka` | Передача доменных событий |
+
+Каждый backend-сервис владеет своей базой данных. Общих таблиц между сервисами нет.
+
+## Технологии
+
+- Java 21, Spring Boot, Spring Security, Spring Data JPA;
+- Spring Cloud OpenFeign;
+- PostgreSQL и Flyway;
+- Apache Kafka;
+- Keycloak;
+- React, Vite, TanStack Query;
+- Nginx и Docker Compose.
 
 ## Запуск
 
-```bash
+Создай локальный файл с секретами:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Замени значения `change-me` в `.env`, затем запусти проект:
+
+```powershell
 docker compose up -d --build
 ```
 
-Основные адреса:
+Проверить контейнеры:
 
-- приложение через edge gateway: http://localhost:3000
-- user-service Swagger через gateway: http://localhost:3000/swagger-ui/index.html
+```powershell
+docker compose ps
+```
+
+Остановить проект:
+
+```powershell
+docker compose down
+```
+
+Удаление с флагом `-v` также удалит данные PostgreSQL.
+
+## Адреса
+
+- приложение: http://localhost:3000
+- user-service Swagger: http://localhost:3000/swagger-ui/index.html
 - dictionary-service Swagger: http://localhost:8081/swagger-ui.html
 - notification-service Swagger: http://localhost:8082/swagger-ui.html
 - profiles-service Swagger: http://localhost:8083/swagger-ui.html
 - orders-service Swagger: http://localhost:8084/swagger-ui.html
-- Keycloak admin console: http://localhost:8085
+- Keycloak: http://localhost:8085
 
-## Сервисы
-
-```text
-gateway               edge reverse proxy
-frontend              React frontend
-user-service          users/auth, roles, user/admin API
-dictionary-service    микросервис справочников
-profiles-service      микросервис профилей
-orders-service        микросервис заказов, заявок и order outbox
-notification-service  микросервис уведомлений
-kafka                 брокер доменных событий
-keycloak              identity provider
-user-postgres         база user-service
-dictionary-postgres   база dictionary-service
-profiles-postgres     база profiles-service
-orders-postgres       база orders-service
-notification-postgres база notification-service
-keycloak-postgres     база Keycloak
-```
-
-## Gateway Routes
+## Взаимодействие
 
 ```text
-/api/v1/dictionary/**      -> dictionary-service
-/api/v1/profiles/**        -> profiles-service
-/api/v1/orders/**          -> orders-service
-/api/v1/applications/**    -> orders-service
-/api/v1/notifications/**   -> notification-service
-/api/**                    -> user-service
-/swagger-ui/**             -> user-service
-/v3/api-docs/**            -> user-service
-/                         -> frontend
+Frontend -> Gateway -> REST services
+Orders/Profile/User services -> Feign -> internal REST API
+Orders service -> Kafka -> Notification service
+Services -> Keycloak/JWT validation
 ```
 
-## Service Databases
+Внутренние endpoint защищены заголовком `X-Internal-Token`. Значение задаётся переменной `APP_INTERNAL_AUTH_TOKEN` в `.env`.
 
-```text
-user-service          bounty_users
-dictionary-service    bounty_dictionary
-profiles-service      bounty_profiles
-orders-service        bounty_orders
-notification-service  bounty_notifications
-keycloak              keycloak
-```
-
-User-service source lives in `user-service/`. Detach migrations:
-
-```text
-user-service/src/main/resources/db/migration/V4__detach_dictionary_service.sql
-user-service/src/main/resources/db/migration/V5__detach_profile_service.sql
-user-service/src/main/resources/db/migration/V6__detach_order_service.sql
-user-service/src/main/resources/db/migration/V101__detach_notification_service.sql
-```
-
-## Интеграции
-
-Services -> dictionary-service:
-
-```text
-DictionaryServiceFeignClient
-```
-
-Orders-service -> profiles-service:
-
-```text
-ProfileServiceFeignClient
-```
-
-Profiles-service/orders-service -> user-service:
-
-```text
-GET  /internal/v1/users/by-email?email={email}
-POST /internal/v1/users/{userId}/roles
-```
-
-Orders-service -> Kafka -> notification-service:
-
-```text
-applications.application-accepted.v1
-bounty.applications.application-accepted.v1
-```
-
-## Internal Auth
-
-Internal endpoints are protected by a shared service token:
-
-```text
-Header: X-Internal-Token
-Env:    APP_INTERNAL_AUTH_TOKEN
-```
-
-Docker Compose uses `dev-internal-token` by default. For a different local token:
-
-```bash
-APP_INTERNAL_AUTH_TOKEN=your-dev-token docker compose up -d --build
-```
-
-Feign clients add the header automatically through `RequestInterceptor`.
-
-## Keycloak
-
-Docker Compose запускает frontend и resource servers в Keycloak-режиме.
-
-```text
-admin console:   http://localhost:8085
-admin user:      admin
-admin password:  admin
-realm:           bounty-guild
-frontend client: bounty-frontend
-demo password:   password
-```
-
-Демо-пользователи:
-
-```text
-admin@bounty.local
-client.hutt@bounty.local
-client.rebel@bounty.local
-hunter.raven@bounty.local
-hunter.rho@bounty.local
-hunter.specter@bounty.local
-```
-
-Frontend использует Authorization Code + PKCE.
-User-service, profiles-service и orders-service работают как OAuth2 Resource Server.
-
-Если realm уже был импортирован в существующую Keycloak-базу, изменения в `keycloak/realm/bounty-guild-realm.json` не применятся автоматически. Для чистого dev-импорта нужно пересоздать volume `bounty_keycloak_postgres_data`.
-
-## Статус Микросервисов
-
-Подробная карта текущего состояния:
-
-```text
-docs/microservice-readiness-status.md
-```
-
-Сейчас уже есть:
-
-```text
-HTTP sync:    services -> dictionary-service через Feign
-HTTP sync:    orders-service -> profiles-service через Feign
-HTTP sync:    services -> user-service через Feign
-Async event:  orders-service -> Kafka -> notification-service
-OIDC auth:    frontend -> Keycloak -> resource servers
-Internal API: X-Internal-Token guard
-```
-
-User-service cleanup завершен: исходники лежат в `user-service/`, Java package переименован в `com.stud.user`, application class - `UserServiceApplication`.
-
-Следующий крупный кандидат: подготовить k8s-манифесты для сервисов, БД, Kafka, Keycloak и gateway.
+Дополнительные архитектурные заметки находятся в папке [`docs`](docs).

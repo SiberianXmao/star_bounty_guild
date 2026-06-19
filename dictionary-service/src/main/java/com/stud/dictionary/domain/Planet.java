@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -48,6 +49,7 @@ public class Planet extends BaseUuidEntity {
     @Column(name = "climate", length = 120)
     private String climate;
 
+    @PositiveOrZero
     @Column(name = "population")
     private Long population;
 

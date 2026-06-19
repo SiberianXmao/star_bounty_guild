@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/bounty_dictionary
     username: postgres
-    password: postgres
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     open-in-view: false
@@ -29,7 +29,7 @@ server:
 app:
   internal-auth:
     header-name: X-Internal-Token
-    token: ${APP_INTERNAL_AUTH_TOKEN:dev-internal-token}
+    token: ${APP_INTERNAL_AUTH_TOKEN}
 
 springdoc:
   swagger-ui:

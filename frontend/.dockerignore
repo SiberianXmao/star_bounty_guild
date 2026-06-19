@@ -1,4 +1,14 @@
-node_modules
-dist
-.vite
-npm-debug.log
+**
+
+!package.json
+!package-lock.json
+!index.html
+!vite.config.js
+!nginx.conf
+
+!src/
+!src/**
+
+# На будущее, если появится
+!public/
+!public/**

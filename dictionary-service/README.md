@@ -1,0 +1,30 @@
+# Dictionary Service
+
+Сервис справочных данных Bounty Guild.
+
+## Отвечает за
+
+- фракции;
+- секторы и планеты;
+- валюты;
+- категории заказов;
+- навыки охотников.
+
+Сервис хранит данные в базе `bounty_dictionary`. Другие сервисы получают справочники через REST/Feign. Исходящих зависимостей на бизнес-сервисы нет.
+
+## API
+
+- публичный префикс: `/api/v1/dictionary`;
+- внутренний префикс: `/internal/v1/dictionary`.
+
+Internal API защищён заголовком `X-Internal-Token`.
+
+## Запуск
+
+```powershell
+docker compose up -d --build dictionary-postgres dictionary-service
+```
+
+- сервис: http://localhost:8081
+- Swagger: http://localhost:8081/swagger-ui.html
+- миграции: `src/main/resources/db/migration`

@@ -13,6 +13,7 @@ import com.stud.dictionary.internal.dto.DictionaryLookupDtos.OrderCategoryRef;
 import com.stud.dictionary.internal.dto.DictionaryLookupDtos.PlanetRef;
 import com.stud.dictionary.internal.dto.DictionaryLookupDtos.SectorRef;
 import com.stud.dictionary.internal.dto.DictionaryLookupDtos.SkillRef;
+import com.stud.dictionary.mapper.DictionaryReferenceMapper;
 import com.stud.dictionary.repository.CurrencyRepository;
 import com.stud.dictionary.repository.FactionRepository;
 import com.stud.dictionary.repository.OrderCategoryRepository;
@@ -39,22 +40,23 @@ public class DictionaryLookupService {
     private final CurrencyRepository currencyRepository;
     private final OrderCategoryRepository orderCategoryRepository;
     private final SkillRepository skillRepository;
+    private final DictionaryReferenceMapper mapper;
 
     public FactionRef getFaction(UUID factionId) {
         return factionRepository.findById(factionId)
-                .map(this::toFactionRef)
+                .map(mapper::toFactionRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Faction not found: " + factionId));
     }
 
     public SectorRef getSector(UUID sectorId) {
         return sectorRepository.findById(sectorId)
-                .map(this::toSectorRef)
+                .map(mapper::toSectorRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Sector not found: " + sectorId));
     }
 
     public PlanetRef getPlanet(UUID planetId) {
         return planetRepository.findById(planetId)
-                .map(this::toPlanetRef)
+                .map(mapper::toPlanetRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Planet not found: " + planetId));
     }
 
@@ -62,61 +64,61 @@ public class DictionaryLookupService {
         String code = normalizeCode(currencyCode);
 
         return currencyRepository.findById(code)
-                .map(this::toCurrencyRef)
+                .map(mapper::toCurrencyRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + code));
     }
 
     public OrderCategoryRef getOrderCategory(UUID categoryId) {
         return orderCategoryRepository.findById(categoryId)
-                .map(this::toOrderCategoryRef)
+                .map(mapper::toOrderCategoryRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Order category not found: " + categoryId));
     }
 
     public SkillRef getSkill(UUID skillId) {
         return skillRepository.findById(skillId)
-                .map(this::toSkillRef)
+                .map(mapper::toSkillRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Skill not found: " + skillId));
     }
 
     public List<FactionRef> getFactions(Collection<UUID> factionIds) {
         return factionRepository.findAllById(nonNullUuids(factionIds))
                 .stream()
-                .map(this::toFactionRef)
+                .map(mapper::toFactionRef)
                 .toList();
     }
 
     public List<SectorRef> getSectors(Collection<UUID> sectorIds) {
         return sectorRepository.findAllById(nonNullUuids(sectorIds))
                 .stream()
-                .map(this::toSectorRef)
+                .map(mapper::toSectorRef)
                 .toList();
     }
 
     public List<PlanetRef> getPlanets(Collection<UUID> planetIds) {
         return planetRepository.findAllById(nonNullUuids(planetIds))
                 .stream()
-                .map(this::toPlanetRef)
+                .map(mapper::toPlanetRef)
                 .toList();
     }
 
     public List<CurrencyRef> getCurrencies(Collection<String> currencyCodes) {
         return currencyRepository.findAllById(normalizeCodes(currencyCodes))
                 .stream()
-                .map(this::toCurrencyRef)
+                .map(mapper::toCurrencyRef)
                 .toList();
     }
 
     public List<OrderCategoryRef> getOrderCategories(Collection<UUID> categoryIds) {
         return orderCategoryRepository.findAllById(nonNullUuids(categoryIds))
                 .stream()
-                .map(this::toOrderCategoryRef)
+                .map(mapper::toOrderCategoryRef)
                 .toList();
     }
 
     public List<SkillRef> getSkills(Collection<UUID> skillIds) {
         return skillRepository.findAllById(nonNullUuids(skillIds))
                 .stream()
-                .map(this::toSkillRef)
+                .map(mapper::toSkillRef)
                 .toList();
     }
 

@@ -19,7 +19,7 @@ public class DictionaryController {
 
     private final DictionaryService dictionaryService;
 
-    private DictionaryController(DictionaryService dictionaryService) {
+    public DictionaryController(DictionaryService dictionaryService) {
         this.dictionaryService = dictionaryService;
     }
 

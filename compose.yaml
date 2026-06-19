@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: bounty_users
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD in .env}
       TZ: Europe/Moscow
     ports:
       - "5432:5432"
@@ -25,7 +25,7 @@ services:
     environment:
       POSTGRES_DB: bounty_dictionary
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${DICTIONARY_DB_PASSWORD:?Set DICTIONARY_DB_PASSWORD in .env}
       TZ: Europe/Moscow
     ports:
       - "5433:5432"
@@ -44,7 +44,7 @@ services:
     environment:
       POSTGRES_DB: bounty_notifications
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Set NOTIFICATION_DB_PASSWORD in .env}
       TZ: Europe/Moscow
     ports:
       - "5434:5432"
@@ -63,7 +63,7 @@ services:
     environment:
       POSTGRES_DB: bounty_profiles
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${PROFILES_DB_PASSWORD:?Set PROFILES_DB_PASSWORD in .env}
       TZ: Europe/Moscow
     ports:
       - "5436:5432"
@@ -82,7 +82,7 @@ services:
     environment:
       POSTGRES_DB: bounty_orders
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${ORDERS_DB_PASSWORD:?Set ORDERS_DB_PASSWORD in .env}
       TZ: Europe/Moscow
     ports:
       - "5437:5432"
@@ -101,7 +101,7 @@ services:
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in .env}
       TZ: Europe/Moscow
     ports:
       - "5435:5432"
@@ -124,9 +124,9 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://dictionary-postgres:5432/bounty_dictionary
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DICTIONARY_DB_PASSWORD:?Set DICTIONARY_DB_PASSWORD in .env}
       SPRING_JPA_OPEN_IN_VIEW: "false"
-      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-dev-internal-token}
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
     ports:
       - "8081:8081"
 
@@ -164,7 +164,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://notification-postgres:5432/bounty_notifications
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Set NOTIFICATION_DB_PASSWORD in .env}
       SPRING_JPA_OPEN_IN_VIEW: "false"
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       APP_KAFKA_TOPICS_APPLICATION_ACCEPTED: bounty.applications.application-accepted.v1
@@ -186,13 +186,13 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://profiles-postgres:5432/bounty_profiles
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${PROFILES_DB_PASSWORD:?Set PROFILES_DB_PASSWORD in .env}
       SPRING_JPA_OPEN_IN_VIEW: "false"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
       APP_SERVICES_USERS_BASE_URL: http://user-service:8080
       APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
-      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-dev-internal-token}
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
     ports:
       - "8083:8083"
 
@@ -217,7 +217,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://orders-postgres:5432/bounty_orders
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${ORDERS_DB_PASSWORD:?Set ORDERS_DB_PASSWORD in .env}
       SPRING_JPA_OPEN_IN_VIEW: "false"
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
@@ -226,7 +226,7 @@ services:
       APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
       APP_SERVICES_PROFILES_BASE_URL: http://profiles-service:8083
       APP_KAFKA_TOPICS_APPLICATION_ACCEPTED: bounty.applications.application-accepted.v1
-      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-dev-internal-token}
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
     ports:
       - "8084:8084"
 
@@ -239,11 +239,11 @@ services:
         condition: service_healthy
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD in .env}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in .env}
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"
     command:
@@ -272,17 +272,17 @@ services:
       SPRING_PROFILES_ACTIVE: dev,keycloak
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-postgres:5432/bounty_users
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD in .env}
       SPRING_JPA_OPEN_IN_VIEW: "false"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
       APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
       APP_SERVICES_PROFILES_BASE_URL: http://profiles-service:8083
       APP_SECURITY_PROVIDER: keycloak
-      APP_SECURITY_JWT_SECRET: c3Rhci1ib3VudHktZ3VpbGQtZGV2LXNlY3JldC0zMi1ieXRlcy1taW4=
+      APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET:?Set APP_SECURITY_JWT_SECRET in .env}
       APP_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: 30
       APP_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_DAYS: 14
-      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-dev-internal-token}
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
     expose:
       - "8080"
 
