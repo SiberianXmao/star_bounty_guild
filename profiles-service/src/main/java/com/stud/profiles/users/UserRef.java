@@ -6,6 +6,7 @@ public record UserRef(
         UUID id,
         String email,
         String username,
-        String displayName
+        String displayName,
+        String avatarUrl
 ) {
 }

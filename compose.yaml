@@ -113,6 +113,74 @@ services:
       timeout: 3s
       retries: 20
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: bounty-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    command:
+      - sh
+      - -c
+      - exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"
+    expose:
+      - "6379"
+    volumes:
+      - bounty_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$${REDIS_PASSWORD} redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: bounty-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+    command:
+      - server
+      - /data
+      - --console-address
+      - :9001
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - bounty_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+    container_name: bounty-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:?Set MINIO_APP_ACCESS_KEY in .env}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:?Set MINIO_APP_SECRET_KEY in .env}
+    volumes:
+      - ./minio/policies:/config/policies:ro
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing local/bounty-media
+        mc anonymous set download local/bounty-media
+        mc admin user add local "$$MINIO_APP_ACCESS_KEY" "$$MINIO_APP_SECRET_KEY" || true
+        mc admin policy create local bounty-media-rw /config/policies/media-rw.json
+        mc admin policy attach local bounty-media-rw --user "$$MINIO_APP_ACCESS_KEY"
+    restart: "no"
+
   dictionary-service:
     build:
       context: ./dictionary-service
@@ -121,14 +189,27 @@ services:
     depends_on:
       dictionary-postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://dictionary-postgres:5432/bounty_dictionary
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${DICTIONARY_DB_PASSWORD:?Set DICTIONARY_DB_PASSWORD in .env}
       SPRING_JPA_OPEN_IN_VIEW: "false"
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+      SPRING_CACHE_TYPE: redis
+      APP_CACHE_TTL: 6h
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
     ports:
       - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/v3/api-docs || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
 
   kafka:
     image: apache/kafka:3.7.0
@@ -170,6 +251,12 @@ services:
       APP_KAFKA_TOPICS_APPLICATION_ACCEPTED: bounty.applications.application-accepted.v1
     ports:
       - "8082:8082"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8082/v3/api-docs || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
 
   profiles-service:
     build:
@@ -195,6 +282,12 @@ services:
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
     ports:
       - "8083:8083"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8083/v3/api-docs || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
 
   orders-service:
     build:
@@ -229,6 +322,12 @@ services:
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
     ports:
       - "8084:8084"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8084/v3/api-docs || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
@@ -245,7 +344,9 @@ services:
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in .env}
       KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: http://localhost:8085
       KC_HOSTNAME_STRICT: "false"
+      KEYCLOAK_USER_SERVICE_CLIENT_SECRET: ${KEYCLOAK_USER_SERVICE_CLIENT_SECRET:?Set KEYCLOAK_USER_SERVICE_CLIENT_SECRET in .env}
     command:
       - start-dev
       - --import-realm
@@ -268,6 +369,8 @@ services:
         condition: service_started
       keycloak:
         condition: service_started
+      minio-init:
+        condition: service_completed_successfully
     environment:
       SPRING_PROFILES_ACTIVE: dev,keycloak
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-postgres:5432/bounty_users
@@ -279,12 +382,27 @@ services:
       APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
       APP_SERVICES_PROFILES_BASE_URL: http://profiles-service:8083
       APP_SECURITY_PROVIDER: keycloak
+      APP_SECURITY_KEYCLOAK_SERVER_URL: http://keycloak:8080
+      APP_SECURITY_KEYCLOAK_REALM: bounty-guild
+      APP_SECURITY_KEYCLOAK_CLIENT_ID: bounty-user-service
+      APP_SECURITY_KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_USER_SERVICE_CLIENT_SECRET:?Set KEYCLOAK_USER_SERVICE_CLIENT_SECRET in .env}
       APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET:?Set APP_SECURITY_JWT_SECRET in .env}
       APP_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: 30
       APP_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_DAYS: 14
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
+      APP_STORAGE_ENDPOINT: http://minio:9000
+      APP_STORAGE_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:?Set MINIO_APP_ACCESS_KEY in .env}
+      APP_STORAGE_SECRET_KEY: ${MINIO_APP_SECRET_KEY:?Set MINIO_APP_SECRET_KEY in .env}
+      APP_STORAGE_BUCKET: bounty-media
+      APP_STORAGE_PUBLIC_BASE_URL: /media
     expose:
       - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/v3/api-docs || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
 
   frontend:
     build:
@@ -298,9 +416,16 @@ services:
     container_name: bounty-frontend
     restart: unless-stopped
     depends_on:
-      - user-service
+      user-service:
+        condition: service_started
     expose:
       - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
 
   gateway:
     build:
@@ -308,12 +433,20 @@ services:
     container_name: bounty-gateway
     restart: unless-stopped
     depends_on:
-      - frontend
-      - user-service
-      - dictionary-service
-      - profiles-service
-      - orders-service
-      - notification-service
+      frontend:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      dictionary-service:
+        condition: service_healthy
+      profiles-service:
+        condition: service_healthy
+      orders-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     ports:
       - "3000:80"
 
@@ -324,3 +457,5 @@ volumes:
   bounty_profiles_postgres_data:
   bounty_orders_postgres_data:
   bounty_keycloak_postgres_data:
+  bounty_redis_data:
+  bounty_minio_data:

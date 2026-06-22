@@ -1,5 +1,6 @@
 package com.stud.notification.service;
 
+import com.stud.notification.service.impl.NotificationServiceImpl;
 import com.stud.notification.domain.NotificationRecipientType;
 import com.stud.notification.domain.NotificationType;
 import com.stud.notification.messaging.ApplicationAcceptedEvent;
@@ -20,7 +21,7 @@ class NotificationServiceTest {
     @Test
     void createApplicationAcceptedNotification_shouldSaveNotification() {
         NotificationRepository repository = mock(NotificationRepository.class);
-        NotificationService service = new NotificationService(repository);
+        NotificationService service = new NotificationServiceImpl(repository);
 
         ApplicationAcceptedEvent event = new ApplicationAcceptedEvent(
                 UUID.randomUUID(),
@@ -51,7 +52,7 @@ class NotificationServiceTest {
     @Test
     void createApplicationAcceptedNotification_shouldIgnoreAlreadyConsumedEvent() {
         NotificationRepository repository = mock(NotificationRepository.class);
-        NotificationService service = new NotificationService(repository);
+        NotificationService service = new NotificationServiceImpl(repository);
 
         ApplicationAcceptedEvent event = new ApplicationAcceptedEvent(
                 UUID.randomUUID(),

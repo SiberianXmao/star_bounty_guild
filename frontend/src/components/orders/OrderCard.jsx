@@ -15,6 +15,11 @@ import styles from "./OrderCard.module.css";
 export default function OrderCard({ order }) {
   return (
     <article className={styles.card}>
+      <Link
+        className={styles.cardLink}
+        to={`/orders/${order.id}`}
+        aria-label={`Открыть заказ ${order.title}`}
+      />
       <div className={styles.cardTop}>
         <div className={styles.id}>#{shortId(order.id)}</div>
         <div className={styles.badges}>
@@ -22,9 +27,7 @@ export default function OrderCard({ order }) {
           <StatusBadge tone={toneForRisk(order.riskLevel)}>{riskLabel(order.riskLevel)}</StatusBadge>
         </div>
       </div>
-      <h3>
-        <Link to={`/orders/${order.id}`}>{order.title}</Link>
-      </h3>
+      <h3>{order.title}</h3>
       <p className={styles.description}>{order.description}</p>
       <div className={styles.metaGrid}>
         <span>

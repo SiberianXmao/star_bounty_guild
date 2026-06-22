@@ -36,6 +36,8 @@
 - Java 21, Spring Boot, Spring Security, Spring Data JPA;
 - Spring Cloud OpenFeign;
 - PostgreSQL и Flyway;
+- Redis и Spring Cache;
+- MinIO для пользовательских изображений;
 - Apache Kafka;
 - Keycloak;
 - React, Vite, TanStack Query;
@@ -67,7 +69,7 @@ docker compose ps
 docker compose down
 ```
 
-Удаление с флагом `-v` также удалит данные PostgreSQL.
+Удаление с флагом `-v` также удалит данные PostgreSQL, Redis и MinIO.
 
 ## Адреса
 
@@ -78,6 +80,7 @@ docker compose down
 - profiles-service Swagger: http://localhost:8083/swagger-ui.html
 - orders-service Swagger: http://localhost:8084/swagger-ui.html
 - Keycloak: http://localhost:8085
+- MinIO Console: http://localhost:9001
 
 ## Взаимодействие
 

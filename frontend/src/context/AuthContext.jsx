@@ -103,6 +103,20 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const currentSession = getStoredSession();
+
+    if (!currentSession?.accessToken) {
+      return null;
+    }
+
+    const user = await authApi.me();
+    const nextSession = { ...currentSession, user };
+    saveStoredSession(nextSession);
+    setSession(nextSession);
+    return user;
+  }, []);
+
   const completeExternalLogin = useCallback(async (searchParams) => {
     setAuthError("");
 
@@ -165,10 +179,11 @@ export function AuthProvider({ children }) {
       login,
       logout,
       register,
+      refreshUser,
       session,
       user: session?.user ?? null,
     }),
-    [authError, completeExternalLogin, isBooting, login, logout, register, session],
+    [authError, completeExternalLogin, isBooting, login, logout, refreshUser, register, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

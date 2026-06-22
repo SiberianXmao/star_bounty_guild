@@ -18,12 +18,21 @@ import com.stud.dictionary.repository.SkillRepository;
 import com.stud.dictionary.service.DictionaryService;
 import com.stud.dictionary.web.dto.DictionaryDtos.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+
+import static com.stud.dictionary.config.cache.DictionaryCacheNames.CURRENCIES;
+import static com.stud.dictionary.config.cache.DictionaryCacheNames.FACTIONS;
+import static com.stud.dictionary.config.cache.DictionaryCacheNames.ORDER_CATEGORIES;
+import static com.stud.dictionary.config.cache.DictionaryCacheNames.PLANETS;
+import static com.stud.dictionary.config.cache.DictionaryCacheNames.SECTORS;
+import static com.stud.dictionary.config.cache.DictionaryCacheNames.SKILLS;
 
 @Service
 @RequiredArgsConstructor
@@ -39,15 +48,17 @@ public class DictionaryServiceImpl implements DictionaryService {
     private final DictionaryResponseMapper mapper;
 
     @Override
+    @Cacheable(cacheNames = FACTIONS, key = "'all'")
     public List<FactionResponse> getFactions() {
         return factionRepository.findAll(Sort.by("name"))
                 .stream()
-                .map(this::toFactionResponse)
+                .map(mapper::toFactionResponse)
                 .toList();
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = FACTIONS, allEntries = true)
     public FactionResponse createFaction(FactionCreateRequest request) {
         String name = request.name().trim();
 
@@ -62,19 +73,21 @@ public class DictionaryServiceImpl implements DictionaryService {
         faction.setInfluenceLevel(request.influenceLevel());
         faction.setRelationToGuild(request.relationToGuild());
 
-        return toFactionResponse(factionRepository.save(faction));
+        return mapper.toFactionResponse(factionRepository.save(faction));
     }
 
     @Override
+    @Cacheable(cacheNames = SECTORS, key = "'all'")
     public List<SectorResponse> getSectors() {
         return sectorRepository.findAll(Sort.by("name"))
                 .stream()
-                .map(this::toSectorResponse)
+                .map(mapper::toSectorResponse)
                 .toList();
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = SECTORS, allEntries = true)
     public SectorResponse createSector(SectorCreateRequest request) {
         String name = request.name().trim();
 
@@ -92,19 +105,21 @@ public class DictionaryServiceImpl implements DictionaryService {
             sector.setControllingFaction(findFaction(request.controllingFactionId()));
         }
 
-        return toSectorResponse(sectorRepository.save(sector));
+        return mapper.toSectorResponse(sectorRepository.save(sector));
     }
 
     @Override
+    @Cacheable(cacheNames = PLANETS, key = "'all'")
     public List<PlanetResponse> getPlanets() {
         return planetRepository.findAll(Sort.by("name"))
                 .stream()
-                .map(this::toPlanetResponse)
+                .map(mapper::toPlanetResponse)
                 .toList();
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = PLANETS, allEntries = true)
     public PlanetResponse createPlanet(PlanetCreateRequest request) {
         String name = request.name().trim();
 
@@ -126,19 +141,21 @@ public class DictionaryServiceImpl implements DictionaryService {
             planet.setControllingFaction(findFaction(request.controllingFactionId()));
         }
 
-        return toPlanetResponse(planetRepository.save(planet));
+        return mapper.toPlanetResponse(planetRepository.save(planet));
     }
 
     @Override
+    @Cacheable(cacheNames = ORDER_CATEGORIES, key = "'all'")
     public List<OrderCategoryResponse> getOrderCategories() {
         return orderCategoryRepository.findAll(Sort.by("name"))
                 .stream()
-                .map(this::toOrderCategoryResponse)
+                .map(mapper::toOrderCategoryResponse)
                 .toList();
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = ORDER_CATEGORIES, allEntries = true)
     public OrderCategoryResponse createOrderCategory(OrderCategoryCreateRequest request) {
         String slug = request.slug().trim().toLowerCase();
 
@@ -152,19 +169,21 @@ public class DictionaryServiceImpl implements DictionaryService {
         category.setDescription(request.description());
         category.setActive(request.active() == null || request.active());
 
-        return toOrderCategoryResponse(orderCategoryRepository.save(category));
+        return mapper.toOrderCategoryResponse(orderCategoryRepository.save(category));
     }
 
     @Override
+    @Cacheable(cacheNames = CURRENCIES, key = "'all'")
     public List<CurrencyResponse> getCurrencies() {
         return currencyRepository.findAll(Sort.by("code"))
                 .stream()
-                .map(this::toCurrencyResponse)
+                .map(mapper::toCurrencyResponse)
                 .toList();
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = CURRENCIES, allEntries = true)
     public CurrencyResponse createCurrency(CurrencyCreateRequest request) {
         String code = request.code().trim().toUpperCase();
 
@@ -178,19 +197,21 @@ public class DictionaryServiceImpl implements DictionaryService {
         currency.setSymbol(request.symbol());
         currency.setActive(request.active() == null || request.active());
 
-        return toCurrencyResponse(currencyRepository.save(currency));
+        return mapper.toCurrencyResponse(currencyRepository.save(currency));
     }
 
     @Override
+    @Cacheable(cacheNames = SKILLS, key = "'all'")
     public List<SkillResponse> getSkills() {
         return skillRepository.findAll(Sort.by("name"))
                 .stream()
-                .map(this::toSkillResponse)
+                .map(mapper::toSkillResponse)
                 .toList();
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = SKILLS, allEntries = true)
     public SkillResponse createSkill(SkillCreateRequest request) {
         String name = request.name().trim();
 
@@ -202,7 +223,7 @@ public class DictionaryServiceImpl implements DictionaryService {
         skill.setName(name);
         skill.setDescription(request.description());
 
-        return toSkillResponse(skillRepository.save(skill));
+        return mapper.toSkillResponse(skillRepository.save(skill));
     }
 
     private Faction findFaction(UUID id) {
@@ -215,79 +236,4 @@ public class DictionaryServiceImpl implements DictionaryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Sector not found: " + id));
     }
 
-    private FactionResponse toFactionResponse(Faction faction) {
-        return new FactionResponse(
-                faction.getId(),
-                faction.getName(),
-                faction.getDescription(),
-                faction.getType(),
-                faction.getInfluenceLevel(),
-                faction.getRelationToGuild()
-        );
-    }
-
-    private SectorResponse toSectorResponse(Sector sector) {
-        UUID factionId = sector.getControllingFaction() == null
-                ? null
-                : sector.getControllingFaction().getId();
-
-        return new SectorResponse(
-                sector.getId(),
-                factionId,
-                sector.getName(),
-                sector.getDescription(),
-                sector.getStabilityLevel(),
-                sector.getDangerLevel()
-        );
-    }
-
-    private PlanetResponse toPlanetResponse(Planet planet) {
-        UUID sectorId = planet.getSector() == null
-                ? null
-                : planet.getSector().getId();
-
-        UUID factionId = planet.getControllingFaction() == null
-                ? null
-                : planet.getControllingFaction().getId();
-
-        return new PlanetResponse(
-                planet.getId(),
-                sectorId,
-                factionId,
-                planet.getName(),
-                planet.getDescription(),
-                planet.getDangerLevel(),
-                planet.getDevelopmentLevel(),
-                planet.getClimate(),
-                planet.getPopulation(),
-                planet.getStatus()
-        );
-    }
-
-    private OrderCategoryResponse toOrderCategoryResponse(OrderCategory category) {
-        return new OrderCategoryResponse(
-                category.getId(),
-                category.getName(),
-                category.getSlug(),
-                category.getDescription(),
-                category.getActive()
-        );
-    }
-
-    private CurrencyResponse toCurrencyResponse(Currency currency) {
-        return new CurrencyResponse(
-                currency.getCode(),
-                currency.getName(),
-                currency.getSymbol(),
-                currency.getActive()
-        );
-    }
-
-    private SkillResponse toSkillResponse(Skill skill) {
-        return new SkillResponse(
-                skill.getId(),
-                skill.getName(),
-                skill.getDescription()
-        );
-    }
 }

@@ -25,6 +25,20 @@ export const authApi = {
     const { data } = await apiClient.get("/auth/me");
     return data;
   },
+
+  async uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const { data } = await apiClient.post("/users/me/avatar", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  },
+
+  async deleteAvatar() {
+    await apiClient.delete("/users/me/avatar");
+  },
 };
 
 export const dictionaryApi = {
@@ -220,6 +234,11 @@ export const profilesApi = {
 
   async hunters() {
     const { data } = await apiClient.get("/profiles/hunters");
+    return data;
+  },
+
+  async hunter(hunterId) {
+    const { data } = await apiClient.get(`/profiles/hunter/${hunterId}`);
     return data;
   },
 

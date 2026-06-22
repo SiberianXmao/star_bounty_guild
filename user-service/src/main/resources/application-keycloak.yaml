@@ -13,3 +13,8 @@ spring:
 app:
   security:
     provider: keycloak
+    keycloak:
+      server-url: ${APP_SECURITY_KEYCLOAK_SERVER_URL:http://localhost:8085}
+      realm: ${APP_SECURITY_KEYCLOAK_REALM:bounty-guild}
+      client-id: ${APP_SECURITY_KEYCLOAK_CLIENT_ID:bounty-user-service}
+      client-secret: ${APP_SECURITY_KEYCLOAK_CLIENT_SECRET}

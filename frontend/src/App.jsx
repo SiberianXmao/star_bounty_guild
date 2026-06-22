@@ -6,6 +6,7 @@ import AuthCallbackPage from "./pages/auth-callback/AuthCallbackPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
 import BoardPage from "./pages/board/BoardPage.jsx";
 import CabinetPage from "./pages/cabinet/CabinetPage.jsx";
+import HunterDetailsPage from "./pages/hunter-details/HunterDetailsPage.jsx";
 import HuntersPage from "./pages/hunters/HuntersPage.jsx";
 import ModerationPage from "./pages/moderation/ModerationPage.jsx";
 import OrderDetailsPage from "./pages/order-details/OrderDetailsPage.jsx";
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/moderation" element={<ModerationPage />} />
             <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
             <Route path="/hunters" element={<HuntersPage />} />
+            <Route path="/hunters/:hunterId" element={<HunterDetailsPage />} />
             <Route path="/cabinet" element={<CabinetPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -28,6 +28,17 @@
     rgba(18, 16, 14, 0.78);
 }
 
+.headerIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: end;
+  gap: clamp(1rem, 3vw, 2rem);
+}
+
+.headerIdentity > div:last-child {
+  min-width: 0;
+}
+
 .header h1,
 .authGate h1 {
   margin: 0;
@@ -353,6 +364,10 @@
     justify-content: start;
   }
 
+  .headerIdentity {
+    align-items: start;
+  }
+
   .columns,
   .overview,
   .twoFields {
@@ -370,6 +385,10 @@
 }
 
 @media (max-width: 620px) {
+  .headerIdentity {
+    flex-direction: column;
+  }
+
   .tabs {
     overflow-x: auto;
   }

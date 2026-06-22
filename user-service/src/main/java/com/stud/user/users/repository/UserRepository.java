@@ -16,6 +16,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmailIgnoreCase(String email);
 
+    Optional<User> findByUsernameIgnoreCase(String username);
+
     @Query(value = """
             select
                 exists(select 1 from bounty.reviews where author_id = :userId or target_user_id = :userId)

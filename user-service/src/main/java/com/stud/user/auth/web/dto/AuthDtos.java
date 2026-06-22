@@ -20,7 +20,6 @@ public final class AuthDtos {
             @NotBlank @Email @Size(max = 255) String email,
             @NotBlank @Size(min = 3, max = 80) String username,
             @Size(max = 120) String displayName,
-            String avatarUrl,
             @NotBlank @Size(min = 8, max = 72) String password
     ) {
     }

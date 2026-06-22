@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
 import java.util.UUID;
 
 @FeignClient(
@@ -19,9 +20,18 @@ public interface UserServiceFeignClient {
     @GetMapping("/by-email")
     UserRef getByEmail(@RequestParam String email);
 
+    @GetMapping("/{userId}")
+    UserRef getById(@PathVariable UUID userId);
+
+    @PostMapping("/lookup")
+    List<UserRef> getByIds(@RequestBody UserIdsRequest request);
+
     @PostMapping("/{userId}/roles")
     void ensureRole(@PathVariable UUID userId, @RequestBody EnsureRoleRequest request);
 
     record EnsureRoleRequest(UserRoleNameRef roleName) {
+    }
+
+    record UserIdsRequest(List<UUID> userIds) {
     }
 }

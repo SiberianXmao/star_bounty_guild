@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,6 +31,16 @@ public class InternalUserController {
         return userLookup.getByEmail(email);
     }
 
+    @GetMapping("/{userId}")
+    public UserRef getById(@PathVariable UUID userId) {
+        return userLookup.getById(userId);
+    }
+
+    @PostMapping("/lookup")
+    public List<UserRef> getByIds(@RequestBody UserIdsRequest request) {
+        return userLookup.getByIds(request.userIds());
+    }
+
     @PostMapping("/{userId}/roles")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void ensureRole(
@@ -40,5 +51,8 @@ public class InternalUserController {
     }
 
     public record EnsureRoleRequest(UserRoleNameRef roleName) {
+    }
+
+    public record UserIdsRequest(List<UUID> userIds) {
     }
 }

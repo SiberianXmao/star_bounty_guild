@@ -25,6 +25,7 @@ repositories {
 
 ext {
     mapstructVersion = '1.6.3'
+    minioVersion = '8.5.17'
     springdocVersion = '2.8.17'
     springCloudVersion = '2025.0.2'
 }
@@ -47,6 +48,7 @@ dependencies {
     implementation "org.mapstruct:mapstruct:${mapstructVersion}"
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    implementation "io.minio:minio:${minioVersion}"
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
