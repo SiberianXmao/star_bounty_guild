@@ -16,6 +16,13 @@ export default function AuthMenu() {
   if (isAuthenticated) {
     return (
       <div className={styles.userPanel}>
+        <Link className={styles.avatar} to="/cabinet" aria-label="Открыть кабинет">
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="" />
+          ) : (
+            <span>{(user?.displayName || user?.username || "BG").slice(0, 2).toUpperCase()}</span>
+          )}
+        </Link>
         <div>
           <span className={styles.userName}>
             {user?.displayName || user?.username || user?.email}

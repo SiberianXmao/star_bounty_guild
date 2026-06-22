@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: dictionary-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/bounty_dictionary
+    username: postgres
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      connect-timeout: 2s
+      timeout: 2s
+
+  cache:
+    type: redis
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: bounty
+        format_sql: true
+
+  flyway:
+    enabled: true
+    schemas: bounty
+    default-schema: bounty
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+server:
+  port: 8081
+
+app:
+  cache:
+    ttl: ${APP_CACHE_TTL:6h}
+    key-prefix: "bounty:dictionary:v1:"
+  internal-auth:
+    header-name: X-Internal-Token
+    token: ${APP_INTERNAL_AUTH_TOKEN}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

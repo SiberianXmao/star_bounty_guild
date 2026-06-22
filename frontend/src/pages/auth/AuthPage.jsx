@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Badge, KeyRound, LogIn, Mail, ShieldCheck, UserPlus } from "lucide-react";
+import { Badge, KeyRound, LogIn, Mail, RadioTower, ShieldCheck, UserPlus } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import heroImage from "../../assets/guild-operations-deck.png";
 import styles from "./AuthPage.module.css";
@@ -22,6 +22,7 @@ export default function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const mode = searchParams.get("mode") === "register" ? "register" : "login";
+  const isRegister = mode === "register";
 
   const setMode = (nextMode) => {
     setSearchParams({ mode: nextMode });
@@ -40,16 +41,16 @@ export default function AuthPage() {
     setIsSubmitting(true);
 
     try {
-      if (mode === "login") {
-        await login({
-          email: form.email,
-          password: form.password,
-        });
-      } else {
+      if (isRegister) {
         await register({
           email: form.email,
           username: form.username,
           displayName: form.displayName || null,
+          password: form.password,
+        });
+      } else {
+        await login({
+          email: form.email,
           password: form.password,
         });
       }
@@ -71,20 +72,20 @@ export default function AuthPage() {
         }}
       >
         <div className={styles.copy}>
-          <span className={styles.kicker}>Secure terminal</span>
-          <h1>Доступ к гильдии</h1>
-          <div className={styles.signalGrid}>
+          <span className={styles.kicker}>Канал гильдии</span>
+          <h1>Доступ к охотникам</h1>
+          <div className={styles.signalGrid} aria-label="Разделы кабинета">
             <span>
-              <b>JWT</b>
-              access
+              <b>Контракты</b>
+              доска
             </span>
             <span>
-              <b>RBAC</b>
-              roles
+              <b>Профиль</b>
+              кабинет
             </span>
             <span>
-              <b>MVP 1</b>
-              ready
+              <b>Роли</b>
+              доступ
             </span>
           </div>
         </div>
@@ -105,19 +106,19 @@ export default function AuthPage() {
             <>
               <div className={styles.cardHeader}>
                 <span className={styles.statusIcon}>
-                  {mode === "login" ? (
-                    <LogIn size={24} aria-hidden="true" />
-                  ) : (
-                    <UserPlus size={24} aria-hidden="true" />
-                  )}
+                  {isRegister ? <UserPlus size={24} aria-hidden="true" /> : <LogIn size={24} aria-hidden="true" />}
                 </span>
                 <div>
-                  <h2>{mode === "login" ? "Вход" : "Регистрация"}</h2>
-                  <p>{mode === "login" ? "Продолжить с аккаунтом" : "Создать аккаунт заказчика"}</p>
+                  <h2>{isRegister ? "Регистрация" : "Вход"}</h2>
+                  <p>
+                    {isRegister
+                      ? "Создай профиль и открой личный кабинет гильдии."
+                      : "Вернись к контрактам, профилю и откликам."}
+                  </p>
                 </div>
               </div>
 
-              <div className={styles.modeSwitch}>
+              <div className={styles.modeSwitch} aria-label="Режим авторизации">
                 <button
                   className={mode === "login" ? styles.active : ""}
                   type="button"
@@ -134,67 +135,80 @@ export default function AuthPage() {
                 </button>
               </div>
 
-              <form className={styles.form} onSubmit={handleSubmit}>
-                <AuthField
-                  icon={Mail}
-                  label="Email"
-                  name="email"
-                  onChange={updateField}
-                  placeholder="hunter@bounty.local"
-                  type="email"
-                  value={form.email}
-                />
-
-                {mode === "register" ? (
-                  <>
-                    <AuthField
-                      icon={Badge}
-                      label="Username"
-                      minLength={3}
-                      name="username"
-                      onChange={updateField}
-                      placeholder="callsign"
-                      value={form.username}
-                    />
-                    <AuthField
-                      icon={Badge}
-                      label="Имя в терминале"
-                      name="displayName"
-                      onChange={updateField}
-                      placeholder="Outer Rim Operator"
-                      required={false}
-                      value={form.displayName}
-                    />
-                  </>
-                ) : null}
-
-                <AuthField
-                  icon={KeyRound}
-                  label="Пароль"
-                  minLength={8}
-                  name="password"
-                  onChange={updateField}
-                  placeholder="минимум 8 символов"
-                  type="password"
-                  value={form.password}
-                />
-
-                {authError ? <div className="notice error">{authError}</div> : null}
-
-                <button className="button" type="submit" disabled={isSubmitting}>
-                  {mode === "login" ? (
-                    <LogIn size={18} aria-hidden="true" />
-                  ) : (
-                    <UserPlus size={18} aria-hidden="true" />
-                  )}
-                  {mode === "login" ? "Войти" : "Создать аккаунт"}
-                </button>
-              </form>
+              <AuthForm
+                authError={authError}
+                form={form}
+                isRegister={isRegister}
+                isSubmitting={isSubmitting}
+                onChange={updateField}
+                onSubmit={handleSubmit}
+              />
             </>
           )}
         </article>
       </section>
     </div>
+  );
+}
+
+function AuthForm({ authError, form, isRegister, isSubmitting, onChange, onSubmit }) {
+  return (
+    <form className={styles.form} onSubmit={onSubmit}>
+      <AuthField
+        autoComplete="email"
+        icon={Mail}
+        label="Email"
+        name="email"
+        onChange={onChange}
+        placeholder="hunter@bounty.local"
+        type="email"
+        value={form.email}
+      />
+
+      {isRegister ? (
+        <div className={styles.formGrid}>
+          <AuthField
+            autoComplete="username"
+            icon={Badge}
+            label="Позывной"
+            minLength={3}
+            name="username"
+            onChange={onChange}
+            placeholder="outer-rim"
+            value={form.username}
+          />
+          <AuthField
+            autoComplete="name"
+            icon={RadioTower}
+            label="Имя в гильдии"
+            name="displayName"
+            onChange={onChange}
+            placeholder="Outer Rim Operator"
+            required={false}
+            value={form.displayName}
+          />
+        </div>
+      ) : null}
+
+      <AuthField
+        autoComplete={isRegister ? "new-password" : "current-password"}
+        icon={KeyRound}
+        label="Пароль"
+        minLength={8}
+        name="password"
+        onChange={onChange}
+        placeholder="минимум 8 символов"
+        type="password"
+        value={form.password}
+      />
+
+      {authError ? <div className="notice error">{authError}</div> : null}
+
+      <button className={`button ${styles.submitButton}`} type="submit" disabled={isSubmitting}>
+        {isRegister ? <UserPlus size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
+        {isSubmitting ? "Проверка..." : isRegister ? "Создать аккаунт" : "Войти"}
+      </button>
+    </form>
   );
 }
 

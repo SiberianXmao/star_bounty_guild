@@ -1,4 +1,5 @@
-import { BadgeCheck, Coins, MapPin, Star } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Coins, MapPin, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import { availabilityLabel } from "../../utils/labels.js";
 import { formatReward } from "../../utils/formatters.js";
 import StatusBadge from "../ui/StatusBadge.jsx";
@@ -9,8 +10,19 @@ export default function HunterCard({ hunter }) {
 
   return (
     <article className={styles.card}>
+      <Link
+        className={styles.cardLink}
+        to={`/hunters/${hunter.id}`}
+        aria-label={`Открыть досье охотника ${hunter.callsign}`}
+      />
       <header className={styles.header}>
-        <div className={styles.avatar}>{hunter.callsign?.slice(0, 2).toUpperCase()}</div>
+        <div className={styles.avatar}>
+          {hunter.avatarUrl ? (
+            <img src={hunter.avatarUrl} alt="" />
+          ) : (
+            hunter.callsign?.slice(0, 2).toUpperCase()
+          )}
+        </div>
         <div>
           <h3>{hunter.callsign}</h3>
           <p>{hunter.factionName || "Нейтральный контрактор"}</p>
@@ -44,6 +56,10 @@ export default function HunterCard({ hunter }) {
           </span>
         ))}
       </div>
+      <span className={styles.openHint}>
+        Открыть досье
+        <ArrowUpRight size={17} aria-hidden="true" />
+      </span>
     </article>
   );
 }

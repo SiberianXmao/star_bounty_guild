@@ -1,0 +1,18 @@
+# Exclude everything by default
+**
+
+# Gradle wrapper and build configuration
+!gradlew
+!settings.gradle
+!build.gradle
+!gradle.properties
+!gradle/
+!gradle/**
+
+# Application sources
+!src/
+!src/**
+
+# Optional local libraries, if introduced later
+!libs/
+!libs/**

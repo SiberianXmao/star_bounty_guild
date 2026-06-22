@@ -16,6 +16,27 @@
   background: rgba(247, 240, 223, 0.055);
 }
 
+.avatar {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 2.65rem;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(215, 166, 74, 0.34);
+  border-radius: 7px;
+  background: rgba(215, 166, 74, 0.1);
+  color: #ffe0a0;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .userName {
   display: block;
   font-weight: 900;

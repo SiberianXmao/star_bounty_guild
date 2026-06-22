@@ -1,1 +1,64 @@
+# IntelliJ IDEA
+.idea/
+**/.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+**/.vscode/
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+.springBeans
+.sts4-cache/
+
+# Java / Gradle
+**/.gradle/
+**/build/
+**/out/
+**/bin/
+hs_err_pid*
+
+# Node / Vite
+**/node_modules/
+**/dist/
+**/.vite/
+**/coverage/
+*.tsbuildinfo
+
+# Logs and temporary files
+*.log
+logs/
+**/.cache/
+**/.tmp/
+tmp/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Certificates and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Local-only project notes
 UserData.md
+
+Data.md

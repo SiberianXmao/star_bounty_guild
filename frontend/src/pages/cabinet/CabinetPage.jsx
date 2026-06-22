@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import EmptyState from "../../components/ui/EmptyState.jsx";
 import StatusBadge from "../../components/ui/StatusBadge.jsx";
+import AvatarUploader from "../../features/avatar/AvatarUploader.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   applicationsApi,
@@ -256,9 +257,15 @@ export default function CabinetPage() {
   return (
     <div className={styles.page}>
       <section className={styles.header}>
-        <div>
-          <span className={styles.kicker}>Guild account</span>
-          <h1>{user?.displayName || user?.username}</h1>
+        <div className={styles.headerIdentity}>
+          <AvatarUploader
+            avatarUrl={user?.avatarUrl}
+            displayName={user?.displayName || user?.username || user?.email}
+          />
+          <div>
+            <span className={styles.kicker}>Guild account</span>
+            <h1>{user?.displayName || user?.username}</h1>
+          </div>
         </div>
         <div className={styles.roleBadges}>
           {user?.roles?.map((role) => (

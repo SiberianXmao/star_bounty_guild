@@ -1,0 +1,20 @@
+spring:
+  config:
+    activate:
+      on-profile: keycloak
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8085/realms/bounty-guild
+          jwk-set-uri: http://localhost:8085/realms/bounty-guild/protocol/openid-connect/certs
+
+app:
+  security:
+    provider: keycloak
+    keycloak:
+      server-url: ${APP_SECURITY_KEYCLOAK_SERVER_URL:http://localhost:8085}
+      realm: ${APP_SECURITY_KEYCLOAK_REALM:bounty-guild}
+      client-id: ${APP_SECURITY_KEYCLOAK_CLIENT_ID:bounty-user-service}
+      client-secret: ${APP_SECURITY_KEYCLOAK_CLIENT_SECRET}

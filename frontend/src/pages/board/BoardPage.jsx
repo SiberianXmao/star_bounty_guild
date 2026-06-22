@@ -326,7 +326,7 @@ export default function BoardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="Контракты не найдены" text="Измени фильтры или проверь backend." />
+            <EmptyState title="Контракты не найдены" text="Измени фильтры или проверь сервисы." />
           )}
         </section>
       </section>

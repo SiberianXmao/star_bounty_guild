@@ -1,0 +1,127 @@
+.uploader {
+  display: grid;
+  width: clamp(7.5rem, 12vw, 9rem);
+  gap: 0.5rem;
+}
+
+.dropZone {
+  position: relative;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(215, 166, 74, 0.42);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(215, 166, 74, 0.2), rgba(98, 215, 229, 0.08)),
+    #191613;
+  color: #ffe0a0;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.dropZone:hover,
+.dragging {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(98, 215, 229, 0.16);
+  transform: translateY(-2px);
+}
+
+.dropZone:focus-visible {
+  outline: 3px solid rgba(98, 215, 229, 0.28);
+  outline-offset: 2px;
+}
+
+.dropZone img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dropZone strong {
+  font-size: 2rem;
+}
+
+.uploadMark {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.45rem;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(247, 240, 223, 0.2);
+  border-radius: 7px;
+  background: rgba(10, 9, 8, 0.88);
+  color: var(--cyan);
+}
+
+.fileInput {
+  display: none;
+}
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.actions button {
+  display: inline-flex;
+  min-height: 2.2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(247, 240, 223, 0.14);
+  border-radius: 7px;
+  padding: 0.42rem 0.58rem;
+  background: rgba(247, 240, 223, 0.06);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.actions button:first-child {
+  flex: 1;
+}
+
+.actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.deleteButton {
+  flex: 0 0 2.2rem;
+  padding: 0;
+  color: #ff9b8f !important;
+}
+
+.constraints,
+.error {
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.constraints {
+  color: var(--muted);
+  text-align: center;
+}
+
+.error {
+  color: #ffb0a7;
+  line-height: 1.35;
+}
+
+.spinner {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
