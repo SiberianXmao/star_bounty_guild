@@ -10,4 +10,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class KafkaTopicsProperties {
 
     private String applicationAccepted = "bounty.applications.application-accepted.v1";
+    private String hunterRated = "bounty.reviews.hunter-rated.v1";
 }

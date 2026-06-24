@@ -45,12 +45,12 @@ export const dictionaryApi = {
   async all() {
     const [factions, sectors, planets, categories, currencies, skills] =
       await Promise.all([
-        apiClient.get("/dictionary/factions"),
-        apiClient.get("/dictionary/sectors"),
-        apiClient.get("/dictionary/planets"),
-        apiClient.get("/dictionary/order-categories"),
-        apiClient.get("/dictionary/currencies"),
-        apiClient.get("/dictionary/skills"),
+        publicClient.get("/dictionary/factions"),
+        publicClient.get("/dictionary/sectors"),
+        publicClient.get("/dictionary/planets"),
+        publicClient.get("/dictionary/order-categories"),
+        publicClient.get("/dictionary/currencies"),
+        publicClient.get("/dictionary/skills"),
       ]);
 
     return {
@@ -76,6 +76,20 @@ export const dictionaryApi = {
   async createPlanet(payload) {
     const { data } = await apiClient.post("/dictionary/planets", payload);
     return data;
+  },
+
+  async uploadCatalogImage(type, entityId, file) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const { data } = await apiClient.post(`/dictionary/${type}/${entityId}/image`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  },
+
+  async deleteCatalogImage(type, entityId) {
+    await apiClient.delete(`/dictionary/${type}/${entityId}/image`);
   },
 
   async createCategory(payload) {
@@ -190,6 +204,23 @@ export const ordersApi = {
 
   async myHunter(params) {
     const { data } = await apiClient.get("/orders/my/hunter", { params });
+    return data;
+  },
+};
+
+export const reviewsApi = {
+  async create(orderId, payload) {
+    const { data } = await apiClient.post(`/orders/${orderId}/review`, payload);
+    return data;
+  },
+
+  async myClient() {
+    const { data } = await apiClient.get("/reviews/my/client");
+    return data;
+  },
+
+  async hunter(hunterId, params) {
+    const { data } = await publicClient.get(`/reviews/hunters/${hunterId}`, { params });
     return data;
   },
 };

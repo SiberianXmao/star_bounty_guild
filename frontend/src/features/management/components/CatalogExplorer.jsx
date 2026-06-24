@@ -6,6 +6,7 @@ import { dictionaryLabel } from "../labels.js";
 import { buildCatalogModel } from "../utils.js";
 import PanelTitle from "./PanelTitle.jsx";
 import styles from "../ManagementConsole.module.css";
+import PlanetImageUploader from "../../planet-image/PlanetImageUploader.jsx";
 
 export default function CatalogExplorer({ dictionaries, error, isError, isLoading }) {
   const [search, setSearch] = useState("");
@@ -130,6 +131,7 @@ function SectorCard({ sector }) {
         <span>Стабильность {sector.stabilityLevel}</span>
         <span>{sector.planets.length} планет</span>
       </div>
+      <PlanetImageUploader entity={sector} type="sectors" />
       {sector.planets.length ? (
         <ul className={styles.planetList}>
           {sector.planets.map((planet) => (
@@ -139,6 +141,7 @@ function SectorCard({ sector }) {
                 {dictionaryLabel(planet.status)} · риск {planet.dangerLevel} · развитие{" "}
                 {planet.developmentLevel}
               </small>
+              <PlanetImageUploader entity={planet} type="planets" />
             </li>
           ))}
         </ul>
@@ -165,6 +168,7 @@ function FactionCard({ faction }) {
         <span>{faction.controlledSectors.length} секторов</span>
         <span>{faction.controlledPlanets.length} планет</span>
       </div>
+      <PlanetImageUploader entity={faction} type="factions" />
       <AssetList items={faction.controlledSectors} label="Секторы" />
       <AssetList items={faction.controlledPlanets} label="Планеты" />
     </article>

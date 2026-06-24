@@ -74,6 +74,7 @@ public final class ProfileDtos {
             BigDecimal minReward,
             Integer reliabilityScore,
             BigDecimal averageRating,
+            Integer ratingCount,
             Integer completedOrdersCount,
             Integer failedOrdersCount,
             List<HunterSkillResponse> skills

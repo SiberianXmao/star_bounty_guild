@@ -16,6 +16,10 @@ public class KafkaMessagingConfiguration {
                 TopicBuilder.name(topicsProperties.getApplicationAccepted())
                         .partitions(1)
                         .replicas(1)
+                        .build(),
+                TopicBuilder.name(topicsProperties.getHunterRated())
+                        .partitions(1)
+                        .replicas(1)
                         .build()
         );
     }

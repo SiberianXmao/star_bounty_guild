@@ -4,7 +4,7 @@ package com.stud.user.users.service.impl;
 import com.stud.user.common.exception.BadRequestException;
 import com.stud.user.common.exception.DuplicateResourceException;
 import com.stud.user.common.exception.ResourceNotFoundException;
-import com.stud.user.media.storage.AvatarStorage;
+import com.stud.user.media.client.FileStorageClient;
 import com.stud.user.users.domain.Role;
 import com.stud.user.users.domain.User;
 import com.stud.user.users.domain.UserRole;
@@ -39,7 +39,7 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final AvatarStorage avatarStorage;
+    private final FileStorageClient fileStorageClient;
 
     @Override
     public List<UserResponse> getUsers() {
@@ -185,7 +185,7 @@ public class UserServiceImpl implements UserService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                avatarStorage.deleteManagedObject(avatarUrl);
+                fileStorageClient.deleteManagedObject(avatarUrl);
             }
         });
     }

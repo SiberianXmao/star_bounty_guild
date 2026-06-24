@@ -7,7 +7,7 @@
 - регистрацию, вход, refresh token и выход;
 - пользователей и их статусы;
 - роли `ADMIN`, `MODERATOR`, `CLIENT`, `HUNTER`;
-- загрузка и удаление аватаров через MinIO;
+- привязка аватаров к пользователям через `file-service`;
 - административные и модераторские операции;
 - внутренний поиск пользователей для других сервисов.
 
@@ -24,7 +24,7 @@
 ## Запуск
 
 ```powershell
-docker compose up -d --build user-postgres minio minio-init user-service
+docker compose up -d --build file-service user-postgres user-service
 ```
 
 - внутренний порт: `8080`

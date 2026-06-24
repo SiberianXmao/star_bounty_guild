@@ -23,6 +23,7 @@
 | `frontend` | React-интерфейс приложения |
 | `user-service` | Пользователи, авторизация, роли и модерация |
 | `dictionary-service` | Планеты, секторы, фракции, валюты, категории и навыки |
+| `file-service` | Проверка изображений и централизованная работа с MinIO |
 | `profiles-service` | Профили заказчиков и охотников |
 | `orders-service` | Заказы, заявки, предложения и outbox |
 | `notification-service` | Уведомления и Kafka consumer |
@@ -37,11 +38,12 @@
 - Spring Cloud OpenFeign;
 - PostgreSQL и Flyway;
 - Redis и Spring Cache;
-- MinIO для пользовательских изображений;
+- MinIO и отдельный `file-service` для пользовательских изображений;
 - Apache Kafka;
 - Keycloak;
 - React, Vite, TanStack Query;
-- Nginx и Docker Compose.
+- Nginx и Docker Compose;
+- Prometheus, Micrometer и Grafana для метрик и мониторинга.
 
 ## Запуск
 
@@ -81,6 +83,12 @@ docker compose down
 - orders-service Swagger: http://localhost:8084/swagger-ui.html
 - Keycloak: http://localhost:8085
 - MinIO Console: http://localhost:9001
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3001
+
+Grafana использует логин `admin` и пароль `GRAFANA_ADMIN_PASSWORD` из `.env`.
+Готовый dashboard находится в папке `Bounty Guild`. Подробности мониторинга:
+[`monitoring/README.md`](monitoring/README.md).
 
 ## Взаимодействие
 

@@ -1,38 +1,25 @@
-import { LogIn, LogOut, UserPlus } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { LogIn, UserRound, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import styles from "./AuthMenu.module.css";
 
 export default function AuthMenu() {
-  const queryClient = useQueryClient();
-  const { isAuthenticated, logout, user } = useAuth();
-
-  const handleLogout = async () => {
-    await logout();
-    queryClient.clear();
-  };
+  const { isAuthenticated, user } = useAuth();
 
   if (isAuthenticated) {
     return (
-      <div className={styles.userPanel}>
-        <Link className={styles.avatar} to="/cabinet" aria-label="Открыть кабинет">
-          {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="" />
-          ) : (
-            <span>{(user?.displayName || user?.username || "BG").slice(0, 2).toUpperCase()}</span>
-          )}
-        </Link>
-        <div>
-          <span className={styles.userName}>
-            {user?.displayName || user?.username || user?.email}
-          </span>
-          <span className={styles.roles}>{user?.roles?.join(" / ")}</span>
-        </div>
-        <button className="iconButton" type="button" onClick={handleLogout} aria-label="Выйти">
-          <LogOut size={18} aria-hidden="true" />
-        </button>
-      </div>
+      <Link
+        className={styles.accountButton}
+        to="/cabinet"
+        aria-label="Открыть личный кабинет"
+        title="Личный кабинет"
+      >
+        {user?.avatarUrl ? (
+          <img src={user.avatarUrl} alt="" />
+        ) : (
+          <UserRound size={21} aria-hidden="true" />
+        )}
+      </Link>
     );
   }
 
@@ -40,11 +27,11 @@ export default function AuthMenu() {
     <div className={styles.guestActions}>
       <Link className="button ghost" to="/auth?mode=login">
         <LogIn size={17} aria-hidden="true" />
-        Войти
+        <span>Войти</span>
       </Link>
       <Link className="button" to="/auth?mode=register">
         <UserPlus size={17} aria-hidden="true" />
-        Регистрация
+        <span>Регистрация</span>
       </Link>
     </div>
   );

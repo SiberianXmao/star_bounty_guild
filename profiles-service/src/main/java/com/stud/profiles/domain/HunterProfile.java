@@ -55,6 +55,9 @@ public class HunterProfile extends BaseUuidEntity {
     @Column(name = "average_rating", nullable = false, precision = 3, scale = 2)
     private BigDecimal averageRating;
 
+    @Column(name = "rating_count", nullable = false)
+    private Integer ratingCount;
+
     @Column(name = "completed_orders_count", nullable = false)
     private Integer completedOrdersCount;
 

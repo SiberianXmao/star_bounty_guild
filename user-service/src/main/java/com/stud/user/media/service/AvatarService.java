@@ -2,8 +2,7 @@ package com.stud.user.media.service;
 
 import com.stud.user.media.service.AvatarAccountService.AvatarAssignment;
 import com.stud.user.media.service.AvatarAccountService.AvatarOwner;
-import com.stud.user.media.service.AvatarImageValidator.ValidatedAvatar;
-import com.stud.user.media.storage.AvatarStorage;
+import com.stud.user.media.client.FileStorageClient;
 import com.stud.user.media.web.dto.AvatarResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,35 +13,28 @@ import org.springframework.web.multipart.MultipartFile;
 public class AvatarService {
 
     private final AvatarAccountService avatarAccountService;
-    private final AvatarImageValidator avatarImageValidator;
-    private final AvatarStorage avatarStorage;
+    private final FileStorageClient fileStorageClient;
 
     public AvatarResponse upload(String email, MultipartFile file) {
         AvatarOwner owner = avatarAccountService.getOwner(email);
-        ValidatedAvatar avatar = avatarImageValidator.validate(file);
-        String newUrl = avatarStorage.store(
-                owner.userId(),
-                avatar.content(),
-                avatar.contentType(),
-                avatar.extension()
-        );
+        String newUrl = fileStorageClient.uploadImage("avatars", owner.userId(), file);
 
         AvatarAssignment assignment;
 
         try {
             assignment = avatarAccountService.replace(owner.userId(), newUrl);
         } catch (RuntimeException exception) {
-            avatarStorage.deleteManagedObject(newUrl);
+            fileStorageClient.deleteManagedObject(newUrl);
             throw exception;
         }
 
-        avatarStorage.deleteManagedObject(assignment.previousUrl());
+        fileStorageClient.deleteManagedObject(assignment.previousUrl());
         return new AvatarResponse(assignment.avatarUrl());
     }
 
     public void delete(String email) {
         AvatarOwner owner = avatarAccountService.getOwner(email);
         AvatarAssignment assignment = avatarAccountService.clear(owner.userId());
-        avatarStorage.deleteManagedObject(assignment.previousUrl());
+        fileStorageClient.deleteManagedObject(assignment.previousUrl());
     }
 }

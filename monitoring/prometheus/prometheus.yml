@@ -1,0 +1,40 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: local
+    project: bounty-guild
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+
+  - job_name: spring-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - user-service:9080
+        labels:
+          application: user-service
+      - targets:
+          - dictionary-service:9081
+        labels:
+          application: dictionary-service
+      - targets:
+          - notification-service:9082
+        labels:
+          application: notification-service
+      - targets:
+          - profiles-service:9083
+        labels:
+          application: profiles-service
+      - targets:
+          - orders-service:9084
+        labels:
+          application: orders-service
+      - targets:
+          - file-service:9086
+        labels:
+          application: file-service

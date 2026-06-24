@@ -6,6 +6,8 @@ import AuthCallbackPage from "./pages/auth-callback/AuthCallbackPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
 import BoardPage from "./pages/board/BoardPage.jsx";
 import CabinetPage from "./pages/cabinet/CabinetPage.jsx";
+import DirectoryPage from "./pages/directory/DirectoryPage.jsx";
+import DirectoryDetailsPage from "./pages/directory-details/DirectoryDetailsPage.jsx";
 import HunterDetailsPage from "./pages/hunter-details/HunterDetailsPage.jsx";
 import HuntersPage from "./pages/hunters/HuntersPage.jsx";
 import ModerationPage from "./pages/moderation/ModerationPage.jsx";
@@ -26,6 +28,8 @@ export default function App() {
             <Route path="/hunters" element={<HuntersPage />} />
             <Route path="/hunters/:hunterId" element={<HunterDetailsPage />} />
             <Route path="/cabinet" element={<CabinetPage />} />
+            <Route path="/directory" element={<DirectoryPage />} />
+            <Route path="/directory/:entityType/:entityId" element={<DirectoryDetailsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>

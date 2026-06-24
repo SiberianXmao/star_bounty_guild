@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { Compass, Crosshair, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { BookOpen, Crosshair, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import AuthMenu from "../auth/AuthMenu.jsx";
 import styles from "./Layout.module.css";
@@ -7,7 +7,7 @@ import styles from "./Layout.module.css";
 const navItems = [
   { to: "/", label: "Контракты", icon: LayoutDashboard },
   { to: "/hunters", label: "Охотники", icon: Crosshair },
-  { to: "/cabinet", label: "Кабинет", icon: Compass },
+  { to: "/directory", label: "Справочник", icon: BookOpen },
 ];
 
 export default function Layout({ children }) {

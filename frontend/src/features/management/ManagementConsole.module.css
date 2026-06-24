@@ -321,6 +321,12 @@ span.roleChip {
   gap: 0.75rem;
 }
 
+.entityHead > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
 .entityHead strong {
   color: var(--text);
 }

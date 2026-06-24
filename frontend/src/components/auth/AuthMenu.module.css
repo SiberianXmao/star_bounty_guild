@@ -4,56 +4,56 @@
   gap: 0.55rem;
 }
 
-.userPanel {
-  display: flex;
-  min-width: min(24rem, 100%);
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 1px solid rgba(247, 240, 223, 0.13);
-  border-radius: 8px;
-  padding: 0.65rem;
-  background: rgba(247, 240, 223, 0.055);
-}
-
-.avatar {
+.accountButton {
   display: grid;
-  width: 2.65rem;
-  height: 2.65rem;
-  flex: 0 0 2.65rem;
+  width: 2.8rem;
+  height: 2.8rem;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(215, 166, 74, 0.34);
-  border-radius: 7px;
-  background: rgba(215, 166, 74, 0.1);
-  color: #ffe0a0;
-  font-size: 0.76rem;
-  font-weight: 950;
+  border: 1px solid rgba(247, 240, 223, 0.22);
+  border-radius: 50%;
+  background: rgba(247, 240, 223, 0.07);
+  color: var(--muted-strong);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
 }
 
-.avatar img {
+.accountButton:hover,
+.accountButton:focus-visible {
+  border-color: rgba(245, 193, 95, 0.7);
+  background: rgba(215, 166, 74, 0.12);
+  color: var(--brass-strong);
+  outline: none;
+}
+
+.accountButton img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.userName {
-  display: block;
-  font-weight: 900;
-}
-
-.roles {
-  display: block;
-  margin-top: 0.18rem;
-  color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-
 @media (max-width: 640px) {
   .guestActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .guestActions :global(.button) {
+    width: auto;
+    min-height: 2.55rem;
+    padding-inline: 0.7rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .guestActions :global(.button) {
+    width: 2.65rem;
+    padding: 0;
+  }
+
+  .guestActions :global(.button) span {
+    display: none;
   }
 }
