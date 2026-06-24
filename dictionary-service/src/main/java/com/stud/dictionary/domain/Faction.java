@@ -28,6 +28,9 @@ public class Faction extends BaseUuidEntity {
     @Column(name = "description", columnDefinition = "text")
     private String description;
 
+    @Column(name = "image_url", length = 1024)
+    private String imageUrl;
+
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "type", nullable = false, columnDefinition = "faction_type")

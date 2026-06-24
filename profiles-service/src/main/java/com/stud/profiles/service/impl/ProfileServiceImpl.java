@@ -197,6 +197,7 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setMinReward(request.minReward());
         profile.setReliabilityScore(50);
         profile.setAverageRating(BigDecimal.ZERO);
+        profile.setRatingCount(0);
         profile.setCompletedOrdersCount(0);
         profile.setFailedOrdersCount(0);
 
@@ -367,6 +368,7 @@ public class ProfileServiceImpl implements ProfileService {
                 profile.getMinReward(),
                 profile.getReliabilityScore(),
                 profile.getAverageRating(),
+                profile.getRatingCount(),
                 profile.getCompletedOrdersCount(),
                 profile.getFailedOrdersCount(),
                 skills
@@ -455,6 +457,7 @@ public class ProfileServiceImpl implements ProfileService {
                 profile.getMinReward(),
                 profile.getReliabilityScore(),
                 profile.getAverageRating(),
+                profile.getRatingCount(),
                 profile.getCompletedOrdersCount(),
                 profile.getFailedOrdersCount(),
                 skills

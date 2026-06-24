@@ -32,6 +32,7 @@ public final class DictionaryDtos {
             UUID id,
             String name,
             String description,
+            String imageUrl,
             FactionType type,
             Integer influenceLevel,
             FactionRelation relationToGuild
@@ -52,6 +53,7 @@ public final class DictionaryDtos {
             UUID controllingFactionId,
             String name,
             String description,
+            String imageUrl,
             Integer stabilityLevel,
             Integer dangerLevel
     ) {
@@ -76,6 +78,7 @@ public final class DictionaryDtos {
             UUID controllingFactionId,
             String name,
             String description,
+            String imageUrl,
             Integer dangerLevel,
             Integer developmentLevel,
             String climate,

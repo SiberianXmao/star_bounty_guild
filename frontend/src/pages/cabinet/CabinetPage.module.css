@@ -1,80 +1,104 @@
 .page {
   display: grid;
-  gap: 1rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  gap: 1.25rem;
 }
 
-.header,
 .authGate,
-.tabs,
 .panel,
 .widePanel,
 .profileCard,
-.metricCard {
+.activityPanel {
   border: 1px solid rgba(247, 240, 223, 0.12);
   border-radius: 8px;
   background: rgba(18, 16, 14, 0.78);
 }
 
-.header {
+.accountHeader {
   display: flex;
-  min-height: 13rem;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: clamp(1rem, 3vw, 2rem);
-  background:
-    radial-gradient(circle at 16% 18%, rgba(215, 166, 74, 0.16), transparent 18rem),
-    radial-gradient(circle at 84% 30%, rgba(98, 215, 229, 0.13), transparent 22rem),
-    rgba(18, 16, 14, 0.78);
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 0 1.5rem;
 }
 
 .headerIdentity {
   display: flex;
   min-width: 0;
-  align-items: end;
-  gap: clamp(1rem, 3vw, 2rem);
+  align-items: center;
+  gap: clamp(1rem, 2.5vw, 1.75rem);
 }
 
-.headerIdentity > div:last-child {
+.identityDetails {
   min-width: 0;
 }
 
-.header h1,
+.accountHeader h1,
 .authGate h1 {
   margin: 0;
-  font-size: clamp(2.2rem, 6vw, 5rem);
-  line-height: 0.95;
-  text-transform: uppercase;
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  line-height: 1.1;
 }
 
 .kicker {
-  display: inline-flex;
-  margin-bottom: 0.7rem;
-  border: 1px solid rgba(98, 215, 229, 0.28);
-  border-radius: 999px;
-  padding: 0.32rem 0.65rem;
-  color: #d9fbff;
-  font-size: 0.76rem;
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  font-size: 0.72rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  color: var(--muted-strong);
+  font-size: 0.82rem;
 }
 
 .roleBadges {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
   gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.logoutButton {
+  display: inline-flex;
+  min-height: 2.65rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  background: rgba(247, 240, 223, 0.05);
+  color: var(--muted-strong);
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.logoutButton:hover {
+  border-color: rgba(232, 111, 97, 0.4);
+  color: #ffb5ab;
 }
 
 .tabs {
   display: flex;
-  gap: 0.35rem;
-  padding: 0.35rem;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
 }
 
 .tabs button {
+  position: relative;
   min-height: 2.7rem;
-  border-radius: 7px;
+  flex: 0 0 auto;
   padding: 0.55rem 1rem;
   background: transparent;
   color: var(--muted);
@@ -82,60 +106,163 @@
   font-weight: 900;
 }
 
+.tabs button::after {
+  position: absolute;
+  right: 0.75rem;
+  bottom: -1px;
+  left: 0.75rem;
+  height: 2px;
+  background: transparent;
+  content: "";
+}
+
 .tabs .active {
-  background: rgba(98, 215, 229, 0.1);
   color: var(--text);
+}
+
+.tabs .active::after {
+  background: var(--brass-strong);
 }
 
 .overview {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1rem;
 }
 
-.profileCard,
-.metricCard {
+.overviewHeader h2,
+.overviewHeader p,
+.activityHeader h2 {
+  margin: 0;
+}
+
+.overviewHeader h2,
+.activityHeader h2 {
+  font-size: 1.05rem;
+}
+
+.overviewHeader p {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.profileGrid {
   display: grid;
-  gap: 0.65rem;
-  min-height: 12rem;
-  align-content: start;
-  padding: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
 }
 
 .profileCard {
-  grid-column: span 2;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: start;
+  min-height: 10rem;
+  padding: 1rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
 }
 
-.profileCard svg {
+.profileCard:hover {
+  border-color: rgba(245, 193, 95, 0.35);
+  background: rgba(247, 240, 223, 0.055);
+}
+
+.profileCard > svg {
+  margin-top: 0.15rem;
+  color: var(--muted);
+}
+
+.profileIcon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid rgba(98, 215, 229, 0.24);
+  border-radius: 7px;
+  background: rgba(98, 215, 229, 0.07);
   color: var(--cyan);
 }
 
-.profileCard span,
-.metricCard span {
+.profileContent {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.profileContent > span:first-child,
+.metricCard span,
+.activityHeader span {
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
-.profileCard strong,
+.profileContent strong {
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.profileLines {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.45rem;
+  color: var(--muted-strong);
+  font-size: 0.78rem;
+}
+
+.profileContent small {
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.activityPanel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.activityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(247, 240, 223, 0.08);
+  padding-bottom: 0.75rem;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metricCard {
+  display: grid;
+  min-height: 6rem;
+  align-content: space-between;
+  gap: 0.6rem;
+  border-right: 1px solid rgba(247, 240, 223, 0.08);
+  padding: 0.45rem 1rem;
+}
+
+.metricCard:first-child {
+  padding-left: 0;
+}
+
+.metricCard:last-child {
+  border-right: 0;
+}
+
 .metricCard strong {
   color: var(--text);
-  font-size: 1.45rem;
-  line-height: 1.05;
-}
-
-.profileCard ul {
-  display: grid;
-  gap: 0.35rem;
-  margin: 0;
-  padding: 0;
-  color: var(--muted-strong);
-  list-style: none;
-}
-
-.metricCard strong {
-  font-size: 3rem;
+  font-size: 2.35rem;
+  line-height: 1;
 }
 
 .columns {
@@ -271,6 +398,16 @@
   gap: 0.8rem;
 }
 
+.reviewedBadge {
+  display: inline-flex;
+  min-height: 2.2rem;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--brass-strong);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
 .orderRow,
 .applicationRow {
   display: grid;
@@ -344,32 +481,18 @@
   color: var(--muted-strong);
 }
 
-@media (max-width: 1120px) {
-  .overview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .profileCard {
-    grid-column: span 1;
-  }
-}
-
 @media (max-width: 860px) {
-  .header {
+  .accountHeader {
     align-items: start;
     flex-direction: column;
   }
 
-  .roleBadges {
-    justify-content: start;
-  }
-
-  .headerIdentity {
-    align-items: start;
+  .logoutButton {
+    align-self: flex-end;
   }
 
   .columns,
-  .overview,
+  .profileGrid,
   .twoFields {
     grid-template-columns: 1fr;
   }
@@ -386,14 +509,27 @@
 
 @media (max-width: 620px) {
   .headerIdentity {
+    align-items: start;
     flex-direction: column;
   }
 
-  .tabs {
-    overflow-x: auto;
+  .logoutButton {
+    width: 100%;
   }
 
-  .tabs button {
-    flex: 0 0 auto;
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .metricCard,
+  .metricCard:first-child {
+    min-height: 4.5rem;
+    border-right: 0;
+    border-bottom: 1px solid rgba(247, 240, 223, 0.08);
+    padding: 0.75rem 0;
+  }
+
+  .metricCard:last-child {
+    border-bottom: 0;
   }
 }

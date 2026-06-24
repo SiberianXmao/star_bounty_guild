@@ -12,7 +12,8 @@ import {
   Trophy,
 } from "lucide-react";
 import StatusBadge from "../../components/ui/StatusBadge.jsx";
-import { profilesApi } from "../../services/bountyApi.js";
+import HunterReviews from "../../features/reviews/HunterReviews.jsx";
+import { profilesApi, reviewsApi } from "../../services/bountyApi.js";
 import { getApiErrorMessage } from "../../services/apiClient.js";
 import { formatReward, shortId } from "../../utils/formatters.js";
 import { availabilityLabel } from "../../utils/labels.js";
@@ -31,6 +32,11 @@ export default function HunterDetailsPage() {
   const hunterQuery = useQuery({
     queryKey: ["hunter", hunterId],
     queryFn: () => profilesApi.hunter(hunterId),
+  });
+  const reviewsQuery = useQuery({
+    queryKey: ["reviews", "hunter", hunterId],
+    queryFn: () => reviewsApi.hunter(hunterId, { size: 10 }),
+    enabled: Boolean(hunterId),
   });
 
   if (hunterQuery.isLoading) {
@@ -123,7 +129,11 @@ export default function HunterDetailsPage() {
               </div>
             </header>
             <div className={styles.metrics}>
-              <Metric icon={Star} label="Средний рейтинг" value={hunter.averageRating ?? "0.0"} />
+              <Metric
+                icon={Star}
+                label="Средний рейтинг"
+                value={`${hunter.averageRating ?? "0.0"} · ${hunter.ratingCount ?? 0} оценок`}
+              />
               <Metric icon={BadgeCheck} label="Надёжность" value={`${hunter.reliabilityScore ?? 0}%`} />
               <Metric icon={Trophy} label="Выполнено" value={successCount} />
               <Metric icon={AlertTriangle} label="Провалено" value={failedCount} />
@@ -132,6 +142,24 @@ export default function HunterDetailsPage() {
               <span>Успешность завершённых операций</span>
               <strong>{successRate}%</strong>
             </div>
+          </article>
+
+          <article className={styles.section}>
+            <header className={styles.sectionHeader}>
+              <Star size={20} aria-hidden="true" />
+              <div>
+                <span>Оценки заказчиков</span>
+                <h2>Отзывы о работе</h2>
+              </div>
+            </header>
+            {reviewsQuery.isError ? (
+              <div className="notice error">{getApiErrorMessage(reviewsQuery.error)}</div>
+            ) : (
+              <HunterReviews
+                isLoading={reviewsQuery.isLoading}
+                reviews={reviewsQuery.data?.content ?? []}
+              />
+            )}
           </article>
         </div>
 

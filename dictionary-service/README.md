@@ -10,7 +10,7 @@
 - категории заказов;
 - навыки охотников.
 
-Сервис хранит данные в базе `bounty_dictionary`. Другие сервисы получают справочники через REST/Feign. Исходящих зависимостей на бизнес-сервисы нет.
+Сервис хранит данные в базе `bounty_dictionary`. Другие сервисы получают справочники через REST/Feign. Изображения загружаются через `file-service`, а здесь хранится только их URL.
 
 Публичные списки справочников кэшируются в Redis на 6 часов. После создания новой записи соответствующий кэш очищается автоматически.
 
@@ -24,7 +24,7 @@ Internal API защищён заголовком `X-Internal-Token`.
 ## Запуск
 
 ```powershell
-docker compose up -d --build dictionary-postgres redis dictionary-service
+docker compose up -d --build file-service dictionary-postgres redis dictionary-service
 ```
 
 - сервис: http://localhost:8081

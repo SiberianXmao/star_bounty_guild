@@ -1,0 +1,109 @@
+.root {
+  position: relative;
+  display: grid;
+  min-width: min(18rem, 100%);
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.dropzone {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  min-height: 3.5rem;
+  overflow: hidden;
+  border: 1px dashed rgba(215, 166, 74, 0.36);
+  border-radius: 7px;
+  padding: 0;
+  background: rgba(215, 166, 74, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.dropzone[data-dragging] {
+  border-style: solid;
+  border-color: var(--brass-strong);
+  background: rgba(215, 166, 74, 0.1);
+}
+
+.dropzone:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.dropzone > img,
+.placeholder {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.dropzone > img {
+  object-fit: cover;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  background: rgba(98, 215, 229, 0.08);
+  color: var(--cyan);
+}
+
+.copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 2.35rem 0.55rem 0.7rem;
+}
+
+.copy > span {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.copy strong,
+.copy small {
+  overflow-wrap: anywhere;
+}
+
+.copy strong {
+  font-size: 0.76rem;
+}
+
+.copy small {
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.deleteButton {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.55rem;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(232, 111, 97, 0.35);
+  border-radius: 6px;
+  background: rgba(8, 8, 8, 0.75);
+  color: #ffb5ab;
+  cursor: pointer;
+}
+
+.fileInput {
+  display: none;
+}
+
+.error {
+  color: #ffb5ab;
+  font-size: 0.68rem;
+}
+
+.spinner {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

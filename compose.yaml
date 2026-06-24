@@ -181,6 +181,31 @@ services:
         mc admin policy attach local bounty-media-rw --user "$$MINIO_APP_ACCESS_KEY"
     restart: "no"
 
+  file-service:
+    build:
+      context: ./file-service
+    container_name: bounty-file-service
+    restart: unless-stopped
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
+      APP_STORAGE_ENDPOINT: http://minio:9000
+      APP_STORAGE_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:?Set MINIO_APP_ACCESS_KEY in .env}
+      APP_STORAGE_SECRET_KEY: ${MINIO_APP_SECRET_KEY:?Set MINIO_APP_SECRET_KEY in .env}
+      APP_STORAGE_BUCKET: bounty-media
+      APP_STORAGE_PUBLIC_BASE_URL: /media
+    expose:
+      - "8086"
+      - "9086"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9086/actuator/health/readiness || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
   dictionary-service:
     build:
       context: ./dictionary-service
@@ -191,6 +216,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      file-service:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://dictionary-postgres:5432/bounty_dictionary
       SPRING_DATASOURCE_USERNAME: postgres
@@ -200,12 +229,17 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
       SPRING_CACHE_TYPE: redis
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
       APP_CACHE_TTL: 6h
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
+      APP_SERVICES_FILE_BASE_URL: http://file-service:8086
     ports:
       - "8081:8081"
+    expose:
+      - "9081"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/v3/api-docs || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9081/actuator/health/readiness || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -251,8 +285,10 @@ services:
       APP_KAFKA_TOPICS_APPLICATION_ACCEPTED: bounty.applications.application-accepted.v1
     ports:
       - "8082:8082"
+    expose:
+      - "9082"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8082/v3/api-docs || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9082/actuator/health/readiness || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -270,20 +306,26 @@ services:
         condition: service_started
       keycloak:
         condition: service_started
+      kafka:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://profiles-postgres:5432/bounty_profiles
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${PROFILES_DB_PASSWORD:?Set PROFILES_DB_PASSWORD in .env}
       SPRING_JPA_OPEN_IN_VIEW: "false"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
       APP_SERVICES_USERS_BASE_URL: http://user-service:8080
       APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
+      APP_KAFKA_TOPICS_HUNTER_RATED: bounty.reviews.hunter-rated.v1
     ports:
       - "8083:8083"
+    expose:
+      - "9083"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8083/v3/api-docs || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9083/actuator/health/readiness || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -319,11 +361,14 @@ services:
       APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
       APP_SERVICES_PROFILES_BASE_URL: http://profiles-service:8083
       APP_KAFKA_TOPICS_APPLICATION_ACCEPTED: bounty.applications.application-accepted.v1
+      APP_KAFKA_TOPICS_HUNTER_RATED: bounty.reviews.hunter-rated.v1
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
     ports:
       - "8084:8084"
+    expose:
+      - "9084"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8084/v3/api-docs || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9084/actuator/health/readiness || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -369,8 +414,8 @@ services:
         condition: service_started
       keycloak:
         condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      file-service:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: dev,keycloak
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-postgres:5432/bounty_users
@@ -381,6 +426,7 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
       APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
       APP_SERVICES_PROFILES_BASE_URL: http://profiles-service:8083
+      APP_SERVICES_FILE_BASE_URL: http://file-service:8086
       APP_SECURITY_PROVIDER: keycloak
       APP_SECURITY_KEYCLOAK_SERVER_URL: http://keycloak:8080
       APP_SECURITY_KEYCLOAK_REALM: bounty-guild
@@ -390,15 +436,11 @@ services:
       APP_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: 30
       APP_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_DAYS: 14
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
-      APP_STORAGE_ENDPOINT: http://minio:9000
-      APP_STORAGE_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:?Set MINIO_APP_ACCESS_KEY in .env}
-      APP_STORAGE_SECRET_KEY: ${MINIO_APP_SECRET_KEY:?Set MINIO_APP_SECRET_KEY in .env}
-      APP_STORAGE_BUCKET: bounty-media
-      APP_STORAGE_PUBLIC_BASE_URL: /media
     expose:
       - "8080"
+      - "9080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/v3/api-docs || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9080/actuator/health/readiness || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -445,10 +487,59 @@ services:
         condition: service_healthy
       notification-service:
         condition: service_healthy
+      file-service:
+        condition: service_healthy
       minio:
         condition: service_healthy
     ports:
       - "3000:80"
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: bounty-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - bounty_prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9090/-/ready || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: bounty-grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3001
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - bounty_grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
 
 volumes:
   bounty_user_postgres_data:
@@ -459,3 +550,5 @@ volumes:
   bounty_keycloak_postgres_data:
   bounty_redis_data:
   bounty_minio_data:
+  bounty_prometheus_data:
+  bounty_grafana_data:

@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   BadgePlus,
   Check,
+  ChevronRight,
   ClipboardList,
   LogIn,
+  LogOut,
+  Mail,
   Play,
   Plus,
   Send,
   Shield,
+  Star,
   Trash2,
   UserRound,
   X,
@@ -17,12 +21,14 @@ import {
 import EmptyState from "../../components/ui/EmptyState.jsx";
 import StatusBadge from "../../components/ui/StatusBadge.jsx";
 import AvatarUploader from "../../features/avatar/AvatarUploader.jsx";
+import HunterReviewForm from "../../features/reviews/HunterReviewForm.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   applicationsApi,
   dictionaryApi,
   ordersApi,
   profilesApi,
+  reviewsApi,
 } from "../../services/bountyApi.js";
 import { getApiErrorMessage } from "../../services/apiClient.js";
 import {
@@ -89,11 +95,19 @@ const tabs = [
   { id: "hunter", label: "Охотник" },
 ];
 
+const roleLabels = {
+  ADMIN: "Администратор",
+  CLIENT: "Заказчик",
+  HUNTER: "Охотник",
+  MODERATOR: "Модератор",
+};
+
 export default function CabinetPage() {
   const queryClient = useQueryClient();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedOrderId, setExpandedOrderId] = useState("");
+  const [reviewOrderId, setReviewOrderId] = useState("");
   const [clientForm, setClientForm] = useState(clientProfileDefaults);
   const [hunterForm, setHunterForm] = useState(hunterProfileDefaults);
   const [skillForm, setSkillForm] = useState(skillDefaults);
@@ -126,11 +140,22 @@ export default function CabinetPage() {
     enabled: Boolean(hunterProfile),
   });
 
+  const clientReviewsQuery = useQuery({
+    queryKey: ["reviews", "my-client"],
+    queryFn: reviewsApi.myClient,
+    enabled: Boolean(clientProfile),
+  });
+
   const myApplicationsQuery = useQuery({
     queryKey: ["applications", "my-hunter"],
     queryFn: applicationsApi.myHunter,
     enabled: Boolean(hunterProfile),
   });
+
+  const reviewsByOrderId = useMemo(
+    () => new Map((clientReviewsQuery.data ?? []).map((review) => [review.orderId, review])),
+    [clientReviewsQuery.data],
+  );
 
   const dictionaries = dictionariesQuery.data ?? {};
 
@@ -254,26 +279,39 @@ export default function CabinetPage() {
   const hunterOrders = hunterOrdersQuery.data?.content ?? [];
   const myApplications = myApplicationsQuery.data ?? [];
 
+  const handleLogout = async () => {
+    await logout();
+    queryClient.clear();
+  };
+
   return (
     <div className={styles.page}>
-      <section className={styles.header}>
+      <section className={styles.accountHeader}>
         <div className={styles.headerIdentity}>
           <AvatarUploader
             avatarUrl={user?.avatarUrl}
             displayName={user?.displayName || user?.username || user?.email}
           />
-          <div>
-            <span className={styles.kicker}>Guild account</span>
-            <h1>{user?.displayName || user?.username}</h1>
+          <div className={styles.identityDetails}>
+            <span className={styles.kicker}>Личный кабинет</span>
+            <h1>{user?.displayName || user?.username || "Пользователь"}</h1>
+            <span className={styles.email}>
+              <Mail size={15} aria-hidden="true" />
+              {user?.email}
+            </span>
+            <div className={styles.roleBadges}>
+              {user?.roles?.map((role) => (
+                <StatusBadge key={role} tone="info">
+                  {roleLabels[role] || role}
+                </StatusBadge>
+              ))}
+            </div>
           </div>
         </div>
-        <div className={styles.roleBadges}>
-          {user?.roles?.map((role) => (
-            <StatusBadge key={role} tone="info">
-              {role}
-            </StatusBadge>
-          ))}
-        </div>
+        <button className={styles.logoutButton} type="button" onClick={handleLogout}>
+          <LogOut size={17} aria-hidden="true" />
+          Выйти
+        </button>
       </section>
 
       <nav className={styles.tabs} aria-label="Разделы кабинета">
@@ -295,31 +333,49 @@ export default function CabinetPage() {
 
       {activeTab === "overview" ? (
         <section className={styles.overview}>
-          <ProfileCard
-            icon={UserRound}
-            title="Профиль заказчика"
-            profile={clientProfile}
-            empty="Не создан"
-            lines={[
-              clientProfile?.factionName,
-              clientProfile?.planetName,
-              `Надежность: ${clientProfile?.reliabilityScore ?? 0}`,
-            ]}
-          />
-          <ProfileCard
-            icon={Shield}
-            title="Профиль охотника"
-            profile={hunterProfile}
-            empty="Не создан"
-            lines={[
-              hunterProfile?.factionName,
-              hunterProfile?.homePlanetName,
-              `Надежность: ${hunterProfile?.reliabilityScore ?? 0}`,
-            ]}
-          />
-          <MetricCard label="Мои заказы" value={clientOrders.length} />
-          <MetricCard label="Назначено мне" value={hunterOrders.length} />
-          <MetricCard label="Мои отклики" value={myApplications.length} />
+          <div className={styles.overviewHeader}>
+            <h2>Рабочие профили</h2>
+            <p>Статусы заказчика и охотника в системе гильдии.</p>
+          </div>
+
+          <div className={styles.profileGrid}>
+            <ProfileCard
+              icon={UserRound}
+              title="Профиль заказчика"
+              profile={clientProfile}
+              empty="Не создан"
+              onOpen={() => setActiveTab("client")}
+              lines={[
+                clientProfile?.factionName,
+                clientProfile?.planetName,
+                `Надежность: ${clientProfile?.reliabilityScore ?? 0}`,
+              ]}
+            />
+            <ProfileCard
+              icon={Shield}
+              title="Профиль охотника"
+              profile={hunterProfile}
+              empty="Не создан"
+              onOpen={() => setActiveTab("hunter")}
+              lines={[
+                hunterProfile?.factionName,
+                hunterProfile?.homePlanetName,
+                `Надежность: ${hunterProfile?.reliabilityScore ?? 0}`,
+              ]}
+            />
+          </div>
+
+          <section className={styles.activityPanel}>
+            <div className={styles.activityHeader}>
+              <h2>Активность</h2>
+              <span>Текущая учетная запись</span>
+            </div>
+            <div className={styles.metrics}>
+              <MetricCard label="Мои заказы" value={clientOrders.length} />
+              <MetricCard label="Назначено мне" value={hunterOrders.length} />
+              <MetricCard label="Мои отклики" value={myApplications.length} />
+            </div>
+          </section>
         </section>
       ) : null}
 
@@ -373,10 +429,19 @@ export default function CabinetPage() {
                 setExpandedOrderId((current) => (current === orderId ? "" : orderId))
               }
               orders={clientOrders}
+              onToggleReview={(orderId) =>
+                setReviewOrderId((current) => (current === orderId ? "" : orderId))
+              }
+              reviewOrderId={reviewOrderId}
+              reviewsByOrderId={reviewsByOrderId}
+              reviewsReady={!clientReviewsQuery.isLoading}
               role="client"
             />
             {orderActionMutation.isError ? (
               <div className="notice error">{getApiErrorMessage(orderActionMutation.error)}</div>
+            ) : null}
+            {clientReviewsQuery.isError ? (
+              <div className="notice error">{getApiErrorMessage(clientReviewsQuery.error)}</div>
             ) : null}
           </div>
         </section>
@@ -455,20 +520,27 @@ function PanelTitle({ icon: Icon, title }) {
   );
 }
 
-function ProfileCard({ empty, icon: Icon, lines, profile, title }) {
+function ProfileCard({ empty, icon: Icon, lines, onOpen, profile, title }) {
   return (
-    <article className={styles.profileCard}>
-      <Icon size={22} aria-hidden="true" />
-      <span>{title}</span>
-      <strong>{profile?.name || profile?.callsign || empty}</strong>
-      {profile ? (
-        <ul>
-          {lines.filter(Boolean).map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      ) : null}
-    </article>
+    <button className={styles.profileCard} type="button" onClick={onOpen}>
+      <span className={styles.profileIcon}>
+        <Icon size={20} aria-hidden="true" />
+      </span>
+      <span className={styles.profileContent}>
+        <span>{title}</span>
+        <strong>{profile?.name || profile?.callsign || empty}</strong>
+        {profile ? (
+          <span className={styles.profileLines}>
+            {lines.filter(Boolean).map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </span>
+        ) : (
+          <small>Профиль можно создать в этом разделе.</small>
+        )}
+      </span>
+      <ChevronRight size={19} aria-hidden="true" />
+    </button>
   );
 }
 
@@ -744,7 +816,11 @@ function OrderList({
   emptyTitle,
   onAction,
   onToggleApplications,
+  onToggleReview,
   orders,
+  reviewOrderId,
+  reviewsByOrderId = new Map(),
+  reviewsReady = true,
   role,
 }) {
   if (!orders.length) {
@@ -753,7 +829,10 @@ function OrderList({
 
   return (
     <div className={styles.orderList}>
-      {orders.map((order) => (
+      {orders.map((order) => {
+        const review = reviewsByOrderId.get(order.id);
+
+        return (
         <article className={styles.orderRow} key={order.id}>
           <div className={styles.orderMain}>
             <span>#{shortId(order.id)}</span>
@@ -796,6 +875,22 @@ function OrderList({
                 Отклики
               </button>
             ) : null}
+            {role === "client" && order.status === "COMPLETED" && review ? (
+              <span className={styles.reviewedBadge} title="Ваш отзыв опубликован">
+                <Star size={15} fill="currentColor" aria-hidden="true" />
+                Ваша оценка: {review.rating}/5
+              </span>
+            ) : null}
+            {role === "client" && order.status === "COMPLETED" && !review && reviewsReady ? (
+              <button
+                className="button secondary"
+                type="button"
+                onClick={() => onToggleReview(order.id)}
+              >
+                <Star size={16} aria-hidden="true" />
+                Оставить отзыв
+              </button>
+            ) : null}
             {role === "hunter" && order.status === "ASSIGNED" ? (
               <button className="button" type="button" onClick={() => onAction("start", order.id)}>
                 <Play size={16} aria-hidden="true" />
@@ -815,8 +910,12 @@ function OrderList({
               orderId={order.id}
             />
           ) : null}
+          {reviewOrderId === order.id && !review ? (
+            <HunterReviewForm order={order} onSubmitted={() => onToggleReview(order.id)} />
+          ) : null}
         </article>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -4,6 +4,9 @@ package com.stud.profiles.repository;
 import com.stud.profiles.domain.HunterProfile;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import jakarta.persistence.LockModeType;
 
 import java.util.Collection;
 import java.util.List;
@@ -17,6 +20,10 @@ public interface HunterProfileRepository extends JpaRepository<HunterProfile, UU
 
     @Override
     Optional<HunterProfile> findById(UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select hunter from HunterProfile hunter where hunter.id = :id")
+    Optional<HunterProfile> findByIdForUpdate(UUID id);
 
     Optional<HunterProfile> findByUserId(UUID userId);
 

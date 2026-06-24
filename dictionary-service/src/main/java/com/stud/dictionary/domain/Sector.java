@@ -30,6 +30,9 @@ public class Sector extends BaseUuidEntity {
     @Column(name = "description", columnDefinition = "text")
     private String description;
 
+    @Column(name = "image_url", length = 1024)
+    private String imageUrl;
+
     @Column(name = "stability_level", nullable = false)
     private Integer stabilityLevel;
 

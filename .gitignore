@@ -46,6 +46,7 @@ tmp/
 **/.env
 **/.env.*
 !**/.env.example
+k8s/secrets.local.yaml
 
 # Certificates and private keys
 *.pem
@@ -62,3 +63,10 @@ Thumbs.db
 UserData.md
 
 Data.md
+Planet.md
+Sectors.md
+factions.md
+
+k8s/
+
+planet/

@@ -40,6 +40,9 @@ public class Planet extends BaseUuidEntity {
     @Column(name = "description", columnDefinition = "text")
     private String description;
 
+    @Column(name = "image_url", length = 1024)
+    private String imageUrl;
+
     @Column(name = "danger_level", nullable = false)
     private Integer dangerLevel;
 
