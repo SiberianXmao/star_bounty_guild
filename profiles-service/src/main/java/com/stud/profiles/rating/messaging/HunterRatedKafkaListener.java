@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stud.profiles.rating.service.HunterRatingProjection;
 import com.stud.profiles.rating.service.HunterRatingProjection.RatingEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class HunterRatedKafkaListener {
@@ -17,7 +19,15 @@ public class HunterRatedKafkaListener {
 
     @KafkaListener(topics = "${app.kafka.topics.hunter-rated}")
     public void onHunterRated(String payload) {
-        ratingProjection.apply(readEvent(payload));
+        RatingEvent event = readEvent(payload);
+        ratingProjection.apply(event);
+        log.info(
+                "Consumed hunter rated event reviewId={}, orderId={}, hunterProfileId={}, rating={}",
+                event.reviewId(),
+                event.orderId(),
+                event.hunterProfileId(),
+                event.rating()
+        );
     }
 
     private RatingEvent readEvent(String payload) {

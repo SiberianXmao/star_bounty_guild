@@ -133,6 +133,54 @@ services:
       timeout: 3s
       retries: 20
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: bounty-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - bounty_elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs \"http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.3
+    container_name: bounty-logstash
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      LS_JAVA_OPTS: -Xms256m -Xmx256m
+    volumes:
+      - ./logging/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "127.0.0.1:5000:5000"
+      - "127.0.0.1:9600:9600"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    container_name: bounty-kibana
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "127.0.0.1:5601:5601"
+
   minio:
     image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
     container_name: bounty-minio
@@ -220,7 +268,10 @@ services:
         condition: service_started
       file-service:
         condition: service_healthy
+      logstash:
+        condition: service_started
     environment:
+      SPRING_PROFILES_ACTIVE: logstash
       SPRING_DATASOURCE_URL: jdbc:postgresql://dictionary-postgres:5432/bounty_dictionary
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${DICTIONARY_DB_PASSWORD:?Set DICTIONARY_DB_PASSWORD in .env}
@@ -234,6 +285,13 @@ services:
       APP_CACHE_TTL: 6h
       APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:?Set APP_INTERNAL_AUTH_TOKEN in .env}
       APP_SERVICES_FILE_BASE_URL: http://file-service:8086
+      LOG_ENVIRONMENT: ${LOG_ENVIRONMENT:-docker}
+      LOGSTASH_DESTINATION: logstash:5000
+      ROOT_LOG_LEVEL: ${ROOT_LOG_LEVEL:-INFO}
+      DICTIONARY_LOG_LEVEL: ${DICTIONARY_LOG_LEVEL:-INFO}
+      SPRING_LOG_LEVEL: ${SPRING_LOG_LEVEL:-WARN}
+      HIBERNATE_SQL_LOG_LEVEL: ${HIBERNATE_SQL_LOG_LEVEL:-WARN}
+      HIBERNATE_BIND_LOG_LEVEL: ${HIBERNATE_BIND_LOG_LEVEL:-WARN}
     ports:
       - "8081:8081"
     expose:
@@ -408,10 +466,6 @@ services:
     depends_on:
       user-postgres:
         condition: service_healthy
-      dictionary-service:
-        condition: service_started
-      profiles-service:
-        condition: service_started
       keycloak:
         condition: service_started
       file-service:
@@ -424,8 +478,6 @@ services:
       SPRING_JPA_OPEN_IN_VIEW: "false"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8085/realms/bounty-guild
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/bounty-guild/protocol/openid-connect/certs
-      APP_SERVICES_DICTIONARY_BASE_URL: http://dictionary-service:8081
-      APP_SERVICES_PROFILES_BASE_URL: http://profiles-service:8083
       APP_SERVICES_FILE_BASE_URL: http://file-service:8086
       APP_SECURITY_PROVIDER: keycloak
       APP_SECURITY_KEYCLOAK_SERVER_URL: http://keycloak:8080
@@ -552,3 +604,4 @@ volumes:
   bounty_minio_data:
   bounty_prometheus_data:
   bounty_grafana_data:
+  bounty_elasticsearch_data:

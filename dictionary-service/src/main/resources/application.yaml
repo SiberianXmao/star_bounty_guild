@@ -44,7 +44,9 @@ spring:
     schemas: bounty
     default-schema: bounty
     baseline-on-migrate: true
-    locations: classpath:db/migration
+    locations:
+      - classpath:db/migration
+      - classpath:com/stud/dictionary/db/migration
 
   cloud:
     openfeign:

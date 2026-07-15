@@ -4,11 +4,13 @@ import com.stud.files.domain.FileCategory;
 import com.stud.files.service.ImageValidator.ValidatedImage;
 import com.stud.files.storage.FileStorage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FileServiceImpl implements FileService {
@@ -19,11 +21,20 @@ public class FileServiceImpl implements FileService {
     @Override
     public String uploadImage(FileCategory category, UUID ownerId, MultipartFile file) {
         ValidatedImage image = imageValidator.validate(file);
-        return fileStorage.store(category, ownerId, image.content(), image.contentType(), image.extension());
+        String publicUrl = fileStorage.store(category, ownerId, image.content(), image.contentType(), image.extension());
+        log.info(
+                "Stored image category={}, ownerId={}, contentType={}, sizeBytes={}",
+                category.path(),
+                ownerId,
+                image.contentType(),
+                image.content().length
+        );
+        return publicUrl;
     }
 
     @Override
     public void delete(String publicUrl) {
         fileStorage.deleteManagedObject(publicUrl);
+        log.info("Deleted managed media object url={}", publicUrl);
     }
 }

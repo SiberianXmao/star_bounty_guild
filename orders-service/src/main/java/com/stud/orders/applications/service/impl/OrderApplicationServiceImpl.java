@@ -15,12 +15,12 @@ import com.stud.orders.applications.api.OrderApplicationEventPublisher;
 
 import com.stud.orders.orders.api.OrderLookup;
 import com.stud.orders.orders.api.OrderRef;
-import com.stud.orders.profiles.ClientProfileRef;
-import com.stud.orders.profiles.HunterProfileRef;
-import com.stud.orders.profiles.ProfileLookup;
+import com.stud.orders.integrations.profiles.ClientProfileRef;
+import com.stud.orders.integrations.profiles.HunterProfileRef;
+import com.stud.orders.integrations.profiles.ProfileLookup;
 
-import com.stud.orders.users.UserLookup;
-import com.stud.orders.users.UserRef;
+import com.stud.orders.integrations.users.UserLookup;
+import com.stud.orders.integrations.users.UserRef;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

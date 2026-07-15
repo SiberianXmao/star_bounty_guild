@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="applicationName" source="spring.application.name" defaultValue="dictionary-service"/>
+
+    <property name="LOG_ENVIRONMENT" value="${LOG_ENVIRONMENT:-local}"/>
+    <property name="LOGSTASH_DESTINATION" value="${LOGSTASH_DESTINATION:-localhost:5000}"/>
+    <property name="ROOT_LOG_LEVEL" value="${ROOT_LOG_LEVEL:-INFO}"/>
+    <property name="DICTIONARY_LOG_LEVEL" value="${DICTIONARY_LOG_LEVEL:-INFO}"/>
+    <property name="SPRING_LOG_LEVEL" value="${SPRING_LOG_LEVEL:-WARN}"/>
+    <property name="HIBERNATE_SQL_LOG_LEVEL" value="${HIBERNATE_SQL_LOG_LEVEL:-WARN}"/>
+    <property name="HIBERNATE_BIND_LOG_LEVEL" value="${HIBERNATE_BIND_LOG_LEVEL:-WARN}"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n%ex</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>${LOGSTASH_DESTINATION}</destination>
+        <reconnectionDelay>5 seconds</reconnectionDelay>
+        <keepAliveDuration>5 minutes</keepAliveDuration>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"${applicationName}","environment":"${LOG_ENVIRONMENT}"}</customFields>
+            <includeContext>false</includeContext>
+            <includeMdcKeyName>trace_id</includeMdcKeyName>
+            <includeMdcKeyName>span_id</includeMdcKeyName>
+            <includeMdcKeyName>request_id</includeMdcKeyName>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC_LOGSTASH" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="LOGSTASH"/>
+    </appender>
+
+    <logger name="com.stud.dictionary" level="${DICTIONARY_LOG_LEVEL}"/>
+    <logger name="org.springframework" level="${SPRING_LOG_LEVEL}"/>
+    <logger name="org.hibernate.SQL" level="${HIBERNATE_SQL_LOG_LEVEL}"/>
+    <logger name="org.hibernate.orm.jdbc.bind" level="${HIBERNATE_BIND_LOG_LEVEL}"/>
+
+    <springProfile name="logstash">
+        <root level="${ROOT_LOG_LEVEL}">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_LOGSTASH"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!logstash">
+        <root level="${ROOT_LOG_LEVEL}">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>
