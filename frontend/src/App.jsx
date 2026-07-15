@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import Layout from "./components/layout/Layout.jsx";
+import ScrollToTop from "./components/layout/ScrollToTop.jsx";
 import AuthPage from "./pages/auth/AuthPage.jsx";
 import AuthCallbackPage from "./pages/auth-callback/AuthCallbackPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
@@ -17,6 +18,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ScrollToTop />
         <Layout>
           <Routes>
             <Route path="/" element={<BoardPage />} />

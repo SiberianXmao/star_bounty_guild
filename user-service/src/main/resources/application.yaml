@@ -38,10 +38,6 @@ spring:
 
 app:
   services:
-    dictionary:
-      base-url: http://localhost:8081
-    profiles:
-      base-url: http://localhost:8083
     file:
       base-url: ${APP_SERVICES_FILE_BASE_URL:http://localhost:8086}
 

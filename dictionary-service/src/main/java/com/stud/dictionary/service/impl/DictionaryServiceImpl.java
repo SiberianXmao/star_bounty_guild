@@ -18,6 +18,7 @@ import com.stud.dictionary.repository.SkillRepository;
 import com.stud.dictionary.service.DictionaryService;
 import com.stud.dictionary.web.dto.DictionaryDtos.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
@@ -36,6 +37,7 @@ import static com.stud.dictionary.config.cache.DictionaryCacheNames.SKILLS;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class DictionaryServiceImpl implements DictionaryService {
 
@@ -50,10 +52,15 @@ public class DictionaryServiceImpl implements DictionaryService {
     @Override
     @Cacheable(cacheNames = FACTIONS, key = "'all'")
     public List<FactionResponse> getFactions() {
-        return factionRepository.findAll(Sort.by("name"))
+        log.debug("Loading faction dictionary");
+
+        List<FactionResponse> factions = factionRepository.findAll(Sort.by("name"))
                 .stream()
                 .map(mapper::toFactionResponse)
                 .toList();
+
+        log.debug("Loaded faction dictionary size={}", factions.size());
+        return factions;
     }
 
     @Override
@@ -62,7 +69,10 @@ public class DictionaryServiceImpl implements DictionaryService {
     public FactionResponse createFaction(FactionCreateRequest request) {
         String name = request.name().trim();
 
+        log.info("Creating faction name='{}' type={} influenceLevel={}", name, request.type(), request.influenceLevel());
+
         if (factionRepository.existsByNameIgnoreCase(name)) {
+            log.warn("Faction creation rejected because name already exists name='{}'", name);
             throw new DuplicateResourceException("Faction with name '%s' already exists".formatted(name));
         }
 
@@ -73,16 +83,24 @@ public class DictionaryServiceImpl implements DictionaryService {
         faction.setInfluenceLevel(request.influenceLevel());
         faction.setRelationToGuild(request.relationToGuild());
 
-        return mapper.toFactionResponse(factionRepository.save(faction));
+        Faction saved = factionRepository.save(faction);
+        log.info("Created faction id={} name='{}'", saved.getId(), saved.getName());
+
+        return mapper.toFactionResponse(saved);
     }
 
     @Override
     @Cacheable(cacheNames = SECTORS, key = "'all'")
     public List<SectorResponse> getSectors() {
-        return sectorRepository.findAll(Sort.by("name"))
+        log.debug("Loading sector dictionary");
+
+        List<SectorResponse> sectors = sectorRepository.findAll(Sort.by("name"))
                 .stream()
                 .map(mapper::toSectorResponse)
                 .toList();
+
+        log.debug("Loaded sector dictionary size={}", sectors.size());
+        return sectors;
     }
 
     @Override
@@ -91,7 +109,16 @@ public class DictionaryServiceImpl implements DictionaryService {
     public SectorResponse createSector(SectorCreateRequest request) {
         String name = request.name().trim();
 
+        log.info(
+                "Creating sector name='{}' stabilityLevel={} dangerLevel={} controllingFactionId={}",
+                name,
+                request.stabilityLevel(),
+                request.dangerLevel(),
+                request.controllingFactionId()
+        );
+
         if (sectorRepository.existsByNameIgnoreCase(name)) {
+            log.warn("Sector creation rejected because name already exists name='{}'", name);
             throw new DuplicateResourceException("Sector with name '%s' already exists".formatted(name));
         }
 
@@ -105,16 +132,24 @@ public class DictionaryServiceImpl implements DictionaryService {
             sector.setControllingFaction(findFaction(request.controllingFactionId()));
         }
 
-        return mapper.toSectorResponse(sectorRepository.save(sector));
+        Sector saved = sectorRepository.save(sector);
+        log.info("Created sector id={} name='{}'", saved.getId(), saved.getName());
+
+        return mapper.toSectorResponse(saved);
     }
 
     @Override
     @Cacheable(cacheNames = PLANETS, key = "'all'")
     public List<PlanetResponse> getPlanets() {
-        return planetRepository.findAll(Sort.by("name"))
+        log.debug("Loading planet dictionary");
+
+        List<PlanetResponse> planets = planetRepository.findAll(Sort.by("name"))
                 .stream()
                 .map(mapper::toPlanetResponse)
                 .toList();
+
+        log.debug("Loaded planet dictionary size={}", planets.size());
+        return planets;
     }
 
     @Override
@@ -123,7 +158,17 @@ public class DictionaryServiceImpl implements DictionaryService {
     public PlanetResponse createPlanet(PlanetCreateRequest request) {
         String name = request.name().trim();
 
+        log.info(
+                "Creating planet name='{}' sectorId={} controllingFactionId={} dangerLevel={} status={}",
+                name,
+                request.sectorId(),
+                request.controllingFactionId(),
+                request.dangerLevel(),
+                request.status()
+        );
+
         if (planetRepository.existsByNameIgnoreCase(name)) {
+            log.warn("Planet creation rejected because name already exists name='{}'", name);
             throw new DuplicateResourceException("Planet with name '%s' already exists".formatted(name));
         }
 
@@ -141,16 +186,24 @@ public class DictionaryServiceImpl implements DictionaryService {
             planet.setControllingFaction(findFaction(request.controllingFactionId()));
         }
 
-        return mapper.toPlanetResponse(planetRepository.save(planet));
+        Planet saved = planetRepository.save(planet);
+        log.info("Created planet id={} name='{}' sectorId={}", saved.getId(), saved.getName(), saved.getSector().getId());
+
+        return mapper.toPlanetResponse(saved);
     }
 
     @Override
     @Cacheable(cacheNames = ORDER_CATEGORIES, key = "'all'")
     public List<OrderCategoryResponse> getOrderCategories() {
-        return orderCategoryRepository.findAll(Sort.by("name"))
+        log.debug("Loading order category dictionary");
+
+        List<OrderCategoryResponse> categories = orderCategoryRepository.findAll(Sort.by("name"))
                 .stream()
                 .map(mapper::toOrderCategoryResponse)
                 .toList();
+
+        log.debug("Loaded order category dictionary size={}", categories.size());
+        return categories;
     }
 
     @Override
@@ -159,7 +212,10 @@ public class DictionaryServiceImpl implements DictionaryService {
     public OrderCategoryResponse createOrderCategory(OrderCategoryCreateRequest request) {
         String slug = request.slug().trim().toLowerCase();
 
+        log.info("Creating order category name='{}' slug='{}' active={}", request.name(), slug, request.active());
+
         if (orderCategoryRepository.existsBySlugIgnoreCase(slug)) {
+            log.warn("Order category creation rejected because slug already exists slug='{}'", slug);
             throw new DuplicateResourceException("Order category with slug '%s' already exists".formatted(slug));
         }
 
@@ -169,16 +225,24 @@ public class DictionaryServiceImpl implements DictionaryService {
         category.setDescription(request.description());
         category.setActive(request.active() == null || request.active());
 
-        return mapper.toOrderCategoryResponse(orderCategoryRepository.save(category));
+        OrderCategory saved = orderCategoryRepository.save(category);
+        log.info("Created order category id={} slug='{}'", saved.getId(), saved.getSlug());
+
+        return mapper.toOrderCategoryResponse(saved);
     }
 
     @Override
     @Cacheable(cacheNames = CURRENCIES, key = "'all'")
     public List<CurrencyResponse> getCurrencies() {
-        return currencyRepository.findAll(Sort.by("code"))
+        log.debug("Loading currency dictionary");
+
+        List<CurrencyResponse> currencies = currencyRepository.findAll(Sort.by("code"))
                 .stream()
                 .map(mapper::toCurrencyResponse)
                 .toList();
+
+        log.debug("Loaded currency dictionary size={}", currencies.size());
+        return currencies;
     }
 
     @Override
@@ -187,7 +251,10 @@ public class DictionaryServiceImpl implements DictionaryService {
     public CurrencyResponse createCurrency(CurrencyCreateRequest request) {
         String code = request.code().trim().toUpperCase();
 
+        log.info("Creating currency code='{}' name='{}' active={}", code, request.name(), request.active());
+
         if (currencyRepository.existsByCodeIgnoreCase(code)) {
+            log.warn("Currency creation rejected because code already exists code='{}'", code);
             throw new DuplicateResourceException("Currency with code '%s' already exists".formatted(code));
         }
 
@@ -197,16 +264,24 @@ public class DictionaryServiceImpl implements DictionaryService {
         currency.setSymbol(request.symbol());
         currency.setActive(request.active() == null || request.active());
 
-        return mapper.toCurrencyResponse(currencyRepository.save(currency));
+        Currency saved = currencyRepository.save(currency);
+        log.info("Created currency code='{}' name='{}'", saved.getCode(), saved.getName());
+
+        return mapper.toCurrencyResponse(saved);
     }
 
     @Override
     @Cacheable(cacheNames = SKILLS, key = "'all'")
     public List<SkillResponse> getSkills() {
-        return skillRepository.findAll(Sort.by("name"))
+        log.debug("Loading skill dictionary");
+
+        List<SkillResponse> skills = skillRepository.findAll(Sort.by("name"))
                 .stream()
                 .map(mapper::toSkillResponse)
                 .toList();
+
+        log.debug("Loaded skill dictionary size={}", skills.size());
+        return skills;
     }
 
     @Override
@@ -215,7 +290,10 @@ public class DictionaryServiceImpl implements DictionaryService {
     public SkillResponse createSkill(SkillCreateRequest request) {
         String name = request.name().trim();
 
+        log.info("Creating skill name='{}'", name);
+
         if (skillRepository.existsByNameIgnoreCase(name)) {
+            log.warn("Skill creation rejected because name already exists name='{}'", name);
             throw new DuplicateResourceException("Skill with name '%s' already exists".formatted(name));
         }
 
@@ -223,17 +301,30 @@ public class DictionaryServiceImpl implements DictionaryService {
         skill.setName(name);
         skill.setDescription(request.description());
 
-        return mapper.toSkillResponse(skillRepository.save(skill));
+        Skill saved = skillRepository.save(skill);
+        log.info("Created skill id={} name='{}'", saved.getId(), saved.getName());
+
+        return mapper.toSkillResponse(saved);
     }
 
     private Faction findFaction(UUID id) {
+        log.debug("Resolving faction id={}", id);
+
         return factionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Faction not found: " + id));
+                .orElseThrow(() -> {
+                    log.warn("Faction lookup failed because faction was not found id={}", id);
+                    return new ResourceNotFoundException("Faction not found: " + id);
+                });
     }
 
     private Sector findSector(UUID id) {
+        log.debug("Resolving sector id={}", id);
+
         return sectorRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Sector not found: " + id));
+                .orElseThrow(() -> {
+                    log.warn("Sector lookup failed because sector was not found id={}", id);
+                    return new ResourceNotFoundException("Sector not found: " + id);
+                });
     }
 
 }
